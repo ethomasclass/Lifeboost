@@ -100,7 +100,7 @@ function viewToday() {
       `<div class="row between" style="margin-top:8px"><button class="btn quiet sm" data-act="tab" data-tab="train">Choose another</button>${!done && mode !== 'min' ? `<button class="btn quiet sm" data-act="start" data-trial="${plan}" data-mode="min">Just 5 minutes</button>` : ''}</div>`;
   }
   return `
-  <div class="top">${fearn(44)}<div class="grow"><h1>${greet}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1><p class="sub">Trial ${lv().n} · ${lv().rank}, the ${lv().tree.toLowerCase()}</p></div>
+  <div class="top"><div class="grow"><h1>${greet}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1><p class="sub">Trial ${lv().n} · ${lv().rank}, the ${lv().tree.toLowerCase()}</p></div>
     <button class="iconbtn" data-act="sheet" data-sheet="settings" aria-label="Settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button></div>
   ${comeback ? `<div class="note">Welcome back. Today is a lighter comeback session, then you pick up where you left off. Nothing was lost.</div>` : ''}
   ${healthCard(ready, d)}
@@ -364,9 +364,10 @@ function render() {
   const freshTab = ui.tab !== render.tab, freshSheet = ui.sheet && sheetKey !== render.sheet;
   render.tab = ui.tab; render.sheet = sheetKey;
   const app = $('#app'); app.className = freshTab ? 'enter' : '';
-  app.innerHTML = woad + VIEWS[ui.tab]();
+  const brand = `<div class="brandbar">${wordmark(108)}</div>`;
+  app.innerHTML = woad + brand + VIEWS[ui.tab]();
   $('#tabs').innerHTML = `<div>${TABS.map(([id, label, path]) => `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>${label}</button>`).join('')}</div>`;
-  $('#overlay').innerHTML = ui.sheet ? `<div class="sheet${freshSheet ? ' enter' : ''}" role="dialog" aria-modal="true">${SHEETS[ui.sheet]()}</div>` : '';
+  $('#overlay').innerHTML = ui.sheet ? `<div class="sheet${freshSheet ? ' enter' : ''}" role="dialog" aria-modal="true">${ui.sheet === 'setup' ? '' : brand}${SHEETS[ui.sheet]()}</div>` : '';
   document.querySelectorAll('svg[data-water]').forEach((el) => requestAnimationFrame(() => requestAnimationFrame(() => el.style.setProperty('--lvl', el.dataset.water))));
   ui.waterPrev = Math.max(0, Math.min(1, ((S.days[today()] || {}).water || 0) / Math.max(1, S.profile.waterTarget)));
   document.querySelectorAll('svg[data-fig]').forEach((svg) => stops.push(mountFigure(svg, svg.dataset.fig, svg.closest('.stage')?.querySelector('[data-figlabel]'), () => { const P = ui.player; if (S.settings.drum && ui.sheet === 'player' && P && P.phase === 'work' && P.remain == null) beep(180, 60); })));

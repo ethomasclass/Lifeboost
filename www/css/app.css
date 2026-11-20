@@ -232,3 +232,11 @@ body { background-color: var(--woad); background-image: var(--ogham), var(--wool
 @keyframes halo { 0%, 100% { opacity: .1; } 50% { opacity: .32; } }
 @keyframes chip { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(var(--x, 8px), 26px); } }
 @media (prefers-reduced-motion: reduce) { #splash .cut { animation: none; stroke-dashoffset: 0; } #splash .lit, #splash .name { animation: none; opacity: 1; } #splash .halo, #splash .chip, .cauldron .wave, .cauldron.full .rim { animation: none; } .cauldron .water { transition: none; } }
+
+/* ---------- wordmark on every screen; opening is the rune alone ---------- */
+.brandbar { display: flex; align-items: center; justify-content: flex-end; height: 30px; margin-bottom: 8px; }
+.brandbar .wordmark { margin: 0; }
+.sheet > .brandbar { max-width: 520px; margin: 0 auto; min-height: 0; height: auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0; }
+.sheet > .brandbar + div { padding-top: 6px; min-height: calc(100% - 50px - env(safe-area-inset-top, 0px)); }
+#splash .cut { stroke: #F2EADB; stroke-width: 10; }
+#splash .lit { stroke-width: 10; }
