@@ -240,3 +240,11 @@ body { background-color: var(--woad); background-image: var(--ogham), var(--wool
 .sheet > .brandbar + div { padding-top: 6px; min-height: calc(100% - 50px - env(safe-area-inset-top, 0px)); }
 #splash .cut { stroke: #F2EADB; stroke-width: 10; }
 #splash .lit { stroke-width: 10; }
+
+/* opening uses the exact Fearn F from the logo canvas */
+#splash .carve-stem, #splash .carve-arm { fill: #F2EADB; transform-box: fill-box; animation: grow var(--t, .8s) cubic-bezier(.3,.7,.3,1) var(--d, 0s) both; }
+#splash .carve-stem { transform-origin: 50% 100%; --from: scaleY(0); }
+#splash .carve-arm { transform-origin: 0 50%; --from: scaleX(0); }
+@keyframes grow { from { transform: var(--from); } }
+#splash .lit { fill: #F07A2E; stroke: none; }
+@media (prefers-reduced-motion: reduce) { #splash .carve-stem, #splash .carve-arm { animation: none; } }
