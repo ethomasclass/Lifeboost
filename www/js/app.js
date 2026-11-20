@@ -33,15 +33,31 @@ function stoneSVG(lit, of = 4, level = S.profile.level, carve = false) {
   let n = '';
   for (let i = 0; i < level; i++) n += `<path ${carve ? `class="carve" style="--d:${0.4 + i * 0.45}s"` : ''} d="M26 ${22 + i * 6} H34" stroke="#C9973F" stroke-width="2.4" stroke-linecap="round"/>`;
   for (let i = 0; i < of; i++) n += `<path d="M19 ${66 - i * 9} H26" stroke="${i < lit ? '#F07A2E' : '#3E3B4D'}" stroke-width="2.6" stroke-linecap="round"/>`;
-  return `<svg class="stone" width="52" height="80" viewBox="0 0 52 80" aria-hidden="true"><defs><pattern id="stg" patternUnits="userSpaceOnUse" width="60" height="60"><image href="img/granite.jpg" width="60" height="60" style="filter:brightness(1.75)"/></pattern></defs><path d="M10 78 L6 22 C6 8,18 2,27 2 C38 2,46 10,45 24 L42 78 Z" fill="#6E6A7E"/><path d="M10 78 L6 22 C6 8,18 2,27 2 C38 2,46 10,45 24 L42 78 Z" fill="url(#stg)" opacity=".9"/><path d="M27 2 C38 2,46 10,45 24 L42 78 L30 78 L34 24 C35 12,31 5,27 2 Z" fill="#17142a" opacity=".38"/><path d="M10 76 L7 23 C7 12,15 5,24 3.500" fill="none" stroke="#fff" stroke-width="1" opacity=".35"/><g fill="#8A8699"><circle cx="14" cy="34" r="1"/><circle cx="36" cy="44" r=".9"/><circle cx="31" cy="18" r="1"/></g><path d="M26 10 V74" stroke="#3E3B4D" stroke-width="1.6"/>${n}</svg>`;
+  return `<svg class="stone" width="52" height="80" viewBox="0 0 52 80" aria-hidden="true"><path d="M10 78 L6 22 C6 8,18 2,27 2 C38 2,46 10,45 24 L42 78 Z" fill="#6E6A7E"/><path d="M27 2 C38 2,46 10,45 24 L42 78 L30 78 L34 24 C35 12,31 5,27 2 Z" fill="#57536A"/><path d="M12 30l4-1 1 3-3 2zM36 52l4 1-1 4-4-2zM14 60l3-2 2 3-3 2z" fill="#807C92"/><g fill="#8A8699"><circle cx="14" cy="34" r="1"/><circle cx="36" cy="44" r=".9"/><circle cx="31" cy="18" r="1"/></g><path d="M26 10 V74" stroke="#3E3B4D" stroke-width="1.6"/>${n}</svg>`;
 }
 function torcSVG(metal, size = 54) {
-  const edge = { bronze: '#5c3f12', silver: '#4a4f5a', gold: '#7a5a0c' }[metal];
+  const c = { bronze: ['#6E4A14', '#C9973F', '#E8C27A'], silver: ['#565B66', '#B9BEC9', '#EEF0F4'], gold: ['#8A6510', '#E2B93B', '#FFE9A3'] }[metal];
   const arc = 'M-9 13 A16 16 0 1 1 9 13';
-  return `<svg class="torcimg" width="${size}" height="${size}" viewBox="-21 -21 42 42" aria-hidden="true"><defs><pattern id="mt-${metal}" patternUnits="userSpaceOnUse" x="-21" y="-21" width="26" height="26"><image href="img/${metal}.jpg" width="26" height="26"/></pattern></defs>
-  <path d="${arc}" fill="none" stroke="${edge}" stroke-width="7.4" stroke-linecap="round"/><path d="${arc}" fill="none" stroke="url(#mt-${metal})" stroke-width="5.6" stroke-linecap="round"/>
-  <path d="${arc}" fill="none" stroke="${edge}" stroke-width="5.6" stroke-dasharray="0.7 2.6" opacity=".55"/><path d="M-12 -9 A16 16 0 0 1 4 -15.500" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
-  <circle cx="-9" cy="13" r="4.4" fill="${edge}"/><circle cx="9" cy="13" r="4.4" fill="${edge}"/><circle cx="-9" cy="13" r="3.500" fill="url(#mt-${metal})"/><circle cx="9" cy="13" r="3.500" fill="url(#mt-${metal})"/></svg>`;
+  return `<svg class="torcimg" width="${size}" height="${size}" viewBox="-21 -21 42 42" aria-hidden="true"><path d="${arc}" fill="none" stroke="${c[0]}" stroke-width="7" stroke-linecap="round"/><path d="${arc}" fill="none" stroke="${c[1]}" stroke-width="4.600" stroke-linecap="round"/><path d="${arc}" fill="none" stroke="${c[2]}" stroke-width="4.600" stroke-dasharray="1.400 3.200"/><circle cx="-9" cy="13" r="4.400" fill="${c[0]}"/><circle cx="9" cy="13" r="4.400" fill="${c[0]}"/><circle cx="-9" cy="13" r="3" fill="${c[1]}"/><circle cx="9" cy="13" r="3" fill="${c[1]}"/></svg>`;
+}
+// The cauldron fills toward the day's water goal.
+function cauldron(oz, goal, mini = false) {
+  const pct = Math.max(0, Math.min(1, oz / Math.max(1, goal))), prev = ui.waterPrev ?? pct;
+  return `<svg viewBox="0 0 200 170" role="img" aria-label="Water: ${oz} of ${goal} ounces" data-water="${pct}" style="--lvl:${prev}">
+  <defs><clipPath id="pot${mini ? 'm' : ''}"><path d="M34 52 C22 96 44 142 100 142 C156 142 178 96 166 52 Z"/></clipPath></defs>
+  <path d="M58 136 L46 164 M142 136 L154 164 M100 142 V166" stroke="#6E4A14" stroke-width="9" stroke-linecap="round"/>
+  <path d="M34 52 C22 96 44 142 100 142 C156 142 178 96 166 52 Z" fill="#15112B"/>
+  <g clip-path="url(#pot${mini ? 'm' : ''})"><g class="water"><g class="wave"><path d="M-40 62 Q-30 54 -20 62 T0 62 T20 62 T40 62 T60 62 T80 62 T100 62 T120 62 T140 62 T160 62 T180 62 T200 62 T220 62 T240 62 V160 H-40 Z" fill="#6FA8DC"/></g><path d="M0 72 H200 V160 H0 Z" fill="#4E86BD"/></g></g>
+  <path d="M34 52 C22 96 44 142 100 142 C156 142 178 96 166 52" fill="none" stroke="#8F6524" stroke-width="8" stroke-linecap="round"/>
+  <g stroke="#C9973F" stroke-width="3" stroke-linecap="round"><path d="M40 121 h10 M150 121 h10 M33 101 h10 M157 101 h10 M30 82 h10 M160 82 h10"/></g>
+  <path class="rim" d="M24 50 H176" stroke="#C9973F" stroke-width="12" stroke-linecap="round"/>
+  <g fill="#E8C27A"><circle cx="40" cy="50" r="2.400"/><circle cx="70" cy="50" r="2.400"/><circle cx="100" cy="50" r="2.400"/><circle cx="130" cy="50" r="2.400"/><circle cx="160" cy="50" r="2.400"/></g>
+  <path d="M30 44 C8 30 8 76 28 70 M170 44 C192 30 192 76 172 70" fill="none" stroke="#8F6524" stroke-width="6" stroke-linecap="round"/></svg>`;
+}
+function waterCard(mini = false) {
+  const d = S.days[today()] || {}, oz = d.water || 0, goal = S.profile.waterTarget, left = Math.max(0, goal - oz);
+  return `<div class="cloth"><div class="cauldron ${mini ? 'mini' : ''} ${oz >= goal ? 'full' : ''}">${cauldron(oz, goal, mini)}<div><p class="small">Water</p><p class="big">${oz} <span class="small">/ ${goal} oz</span></p><p class="small">${oz >= goal ? 'The cauldron is full. Goal met.' : `${left} oz to go, about ${Math.ceil(left / 8)} ${Math.ceil(left / 8) === 1 ? 'glass' : 'glasses'}.`}</p>
+  <div class="row wrap" style="margin-top:8px"><button class="btn sm" data-act="water" data-v="8">+8 oz</button><button class="btn sm" data-act="water" data-v="16">+16</button>${mini ? '' : '<button class="btn sm" data-act="water" data-v="24">+24</button><button class="btn sm quiet" data-act="water" data-v="-8" aria-label="Remove 8 ounces">−8</button>'}</div></div></div>${mini ? '' : '<p class="small" style="margin:8px 0 0">Change your daily goal in Settings.</p>'}</div>`;
 }
 const wordmark = (w = 220) => `<svg class="wordmark" width="${w}" height="${Math.round(w * 0.27)}" viewBox="-6 -6 536 142" role="img" aria-label="Fianna"><defs><g id="wm"><path d="M0 0 H70 L62 22 H22 V48 H58 L51 68 H22 V120 H0 Z"/><path d="M86 6 L108 0 V114 L86 120 Z"/><path d="M162 0 H178 L216 120 H192 L170 46 L148 120 H124 Z"/><path d="M232 0 H254 L292 74 V0 H314 V120 H292 L254 46 V120 H232 Z"/><path d="M330 0 H352 L390 74 V0 H412 V120 H390 L352 46 V120 H330 Z"/><path d="M466 0 H482 L520 120 H496 L474 46 L452 120 H428 Z"/></g></defs><use href="#wm" fill="#120E26" transform="translate(4 5)"/><use href="#wm" fill="#F2EADB"/><path d="M170 80 l9 9 l-9 9 l-9 -9 Z M474 80 l9 9 l-9 9 l-9 -9 Z" fill="#F07A2E"/></svg>`;
 const flame = '<svg class="flame" viewBox="0 0 18 22" aria-hidden="true"><path d="M9 1C10 6 15 8 15 14a6 6 0 01-12 0c0-3 2-4 3-7 1 2 2 2 3-6z" fill="#F07A2E"/><path d="M9 10c1 2 3 3 3 5.500a3 3 0 01-6 0C6 13.500 8 13 9 10z" fill="#FFD08A"/></svg>';
@@ -97,7 +113,7 @@ function viewToday() {
     <button class="slab" data-act="tab" data-tab="fuel" style="text-align:left;color:inherit;font:inherit;border-left:0;border-right:0"><p class="small">Protein</p><p class="big">${protein} <span class="small">/ ${S.profile.proteinTarget} g</span></p></button>
   </div>
   <div class="slab"><div class="row">${stoneSVG(prog.count)}<div><p class="small">Standing stone</p><h3>${prog.count} of ${prog.need} notches carved</h3><p class="small">${S.profile.level >= LEVELS.length ? 'You hold the highest rank. Keep adding weight.' : prog.count >= prog.need && !prog.ready ? 'Finish one more that feels doable to rise.' : `${prog.need - prog.count} more full ${prog.need - prog.count === 1 ? 'trial' : 'trials'} to reach Trial ${S.profile.level + 1} (${LEVELS[S.profile.level].minutes} min).`}</p></div></div></div>
-  <div class="cloth"><div class="row between"><div><p class="small">Water</p><p class="big">${d.water || 0} <span class="small">/ ${S.profile.waterTarget} oz</span></p></div><div class="row"><button class="btn sm" data-act="water" data-v="8">+8 oz</button><button class="btn sm" data-act="water" data-v="16">+16</button></div></div>${meter(d.water || 0, S.profile.waterTarget, 'water')}</div>
+  ${waterCard(true)}
   ${ui.brief ? `<div class="cloth"><h3>Morning briefing</h3><p style="margin:0">${esc(ui.brief)}</p></div>` : ''}
   <div class="grid2"><button class="btn" data-act="brief" ${ui.busy === 'brief' ? 'disabled' : ''}>${ui.busy === 'brief' ? 'Preparing…' : 'Morning briefing'}</button><button class="btn" data-act="sheet" data-sheet="coach">Ask your coach</button></div>
   ${proverb()}`;
@@ -125,7 +141,7 @@ function viewFuel() {
   return `<div class="top"><div class="grow"><h1>Fuel</h1><p class="sub">Protein first. It protects your muscle.</p></div></div>
   <div class="slab"><div class="row between"><div><p class="small">Protein today</p><p class="big">${p} <span class="small">/ ${S.profile.proteinTarget} g</span></p></div>${cal ? `<p class="small num">${cal} cal logged</p>` : ''}</div>${meter(p, S.profile.proteinTarget)}
     <p class="small">${p >= S.profile.proteinTarget ? 'Target hit. Your muscles are fed.' : `${S.profile.proteinTarget - p} g to go. Small, protein-dense bites count.`}</p></div>
-  <div class="cloth"><div class="row between"><div><p class="small">Water</p><p class="big">${d.water} <span class="small">/ ${S.profile.waterTarget} oz</span></p></div><div class="row"><button class="btn sm" data-act="water" data-v="8">+8 oz</button><button class="btn sm" data-act="water" data-v="16">+16</button><button class="btn sm quiet" data-act="water" data-v="-8" aria-label="Remove 8 ounces">−8</button></div></div>${meter(d.water, S.profile.waterTarget, 'water')}</div>
+  ${waterCard()}
   <h2>Log food</h2>
   <div class="cloth">
     <label class="btn" style="width:100%;margin:0 0 4px;color:var(--bone)">${ui.busy === 'meal' ? 'Looking at your photo…' : 'Snap a photo to estimate'}<input type="file" accept="image/*" capture="environment" data-photo hidden></label>
@@ -304,6 +320,8 @@ function render() {
   app.innerHTML = woad + VIEWS[ui.tab]();
   $('#tabs').innerHTML = `<div>${TABS.map(([id, label, path]) => `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>${label}</button>`).join('')}</div>`;
   $('#overlay').innerHTML = ui.sheet ? `<div class="sheet${freshSheet ? ' enter' : ''}" role="dialog" aria-modal="true">${SHEETS[ui.sheet]()}</div>` : '';
+  document.querySelectorAll('svg[data-water]').forEach((el) => requestAnimationFrame(() => requestAnimationFrame(() => el.style.setProperty('--lvl', el.dataset.water))));
+  ui.waterPrev = Math.max(0, Math.min(1, ((S.days[today()] || {}).water || 0) / Math.max(1, S.profile.waterTarget)));
   document.querySelectorAll('svg[data-fig]').forEach((svg) => stops.push(mountFigure(svg, svg.dataset.fig, svg.closest('.stage')?.querySelector('[data-figlabel]'), () => { const P = ui.player; if (S.settings.drum && ui.sheet === 'player' && P && P.phase === 'work' && P.remain == null) beep(180, 60); })));
   if (ui.sheet === 'coach') { const log = $('.sheet'); if (log) log.scrollTop = log.scrollHeight; }
 }
@@ -506,5 +524,11 @@ function shrink(file, max = 1024) {
 
 window.__fianna = { get state() { return S; }, ui, render, start };
 render();
+// Opening: let the rune finish carving and glow, then lift the stone away. A tap skips it.
+{
+  const sp = $('#splash'), quick = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lift = () => { if (!sp || sp.classList.contains('out')) return; sp.classList.add('out'); setTimeout(() => sp.remove(), 800); };
+  sp?.addEventListener('click', lift); setTimeout(lift, quick ? 1200 : 5600);
+}
 allPhotos().then((p) => { ui.photos = p; if (p.length && ui.tab === 'progress') render(); });
 if (S.profile.setup) syncNotifications(S.settings);
