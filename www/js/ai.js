@@ -9,10 +9,13 @@ export async function ask(state, { system, messages, max = 700 }) {
   const key = state.settings.apiKey?.trim();
   if (!key) throw new Error('Add your Claude API key in Settings to use the coach.');
   let res;
+  const headers = { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' };
+  const ws = state.settings.workspaceId?.trim();
+  if (ws) headers['anthropic-workspace-id'] = ws;
   try {
     res = await fetch(URL, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers,
       body: JSON.stringify({ model: state.settings.model || 'claude-sonnet-5-5', max_tokens: max, system, messages }),
     });
   } catch { throw new Error("Couldn't reach Claude. Check your connection and try again."); }
@@ -20,6 +23,7 @@ export async function ask(state, { system, messages, max = 700 }) {
   if (!res.ok) {
     if (res.status === 401) throw new Error("That API key wasn't accepted. Check it in Settings.");
     if (res.status === 429) throw new Error('Claude is busy or your credits ran out. Try again in a minute.');
+    if (/workspace/i.test(data?.error?.message || '')) throw new Error('This key is not tied to a workspace. Make a new key and choose a workspace for it, or add your workspace ID in Settings.');
     throw new Error(data?.error?.message || `Claude returned an error (${res.status}).`);
   }
   return (data.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('\n').trim();

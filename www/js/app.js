@@ -182,6 +182,7 @@ function sheetSettings() {
   <button type="button" class="btn sm" style="margin-top:12px" data-act="skipday">${s.skipDate === today() ? 'Reminders are off for today' : 'Skip reminders today'}</button>
   ${isNative() ? '' : '<p class="small" style="margin-top:8px">Reminders work in the installed Android app.</p>'}
   <h2>Coach</h2><label for="ak">Claude API key</label><input id="ak" name="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(s.apiKey)}">
+  <label for="wsid">Workspace ID (only if your key asks for one)</label><input id="wsid" name="workspaceId" autocomplete="off" placeholder="wrkspc_…" value="${esc(s.workspaceId || '')}">
   <p class="small" style="margin-top:6px">Powers the coach, photo food estimates, and the bard's tale. Stored only on this phone.</p>
   <button class="btn go" style="margin-top:18px">Save settings</button></form>
   <h2>Backup</h2><div class="cloth"><p class="small">Copy this text somewhere safe to back up. Paste a backup here and tap Restore to load it.</p><textarea id="backup" aria-label="Backup data">${esc(ui.backup)}</textarea><div class="row" style="margin-top:8px"><button class="btn sm" data-act="export">Show my data</button><button class="btn sm" data-act="import">Restore</button></div></div></div>`;
@@ -370,7 +371,7 @@ const FORMS = {
     const p = S.profile, s = S.settings, lvl = Number(f.level);
     p.name = f.name.trim(); p.weightLb = Number(f.lb) || null; p.proteinTarget = Number(f.protein) || p.proteinTarget; p.waterTarget = Number(f.water) || p.waterTarget; p.dbStep = Number(f.step);
     if (lvl !== p.level) { p.level = lvl; p.levelSince = today(); }
-    s.notify = !!f.notify; s.apiKey = f.apiKey.trim();
+    s.notify = !!f.notify; s.apiKey = f.apiKey.trim(); s.workspaceId = (f.workspaceId || '').trim();
     for (const g of ['times', 'weekend']) for (const slot of Object.keys(s[g])) if (f[`${g}.${slot}`]) s[g][slot] = f[`${g}.${slot}`];
     save(); const r = await syncNotifications(s); ui.sheet = null; render();
     toast(r.ok ? (s.notify ? 'Saved. Reminders are set.' : 'Saved. Reminders are off.') : 'Saved.');
