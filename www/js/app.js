@@ -4,6 +4,7 @@ import { mountFigure } from './figure.js';
 import { syncNotifications, isNative, buzz, beep, keepAwake, say, hush, canSpeak, playHorn, shareBackup } from './native.js';
 import { coach, estimateMeal, bardTale, briefing, bandRead, bandPatterns } from './ai.js';
 import { allPhotos, addPhoto, removePhoto } from './photos.js';
+import { GLOW, ROCK, rankStone, heroStone, numberStone, iconStone, tabStone, notchStone, slabURI, plateURI, runeStone, oghamGlyph, iconGlyph } from './stones.js';
 
 const KEY = 'fianna.v1';
 function load() {
@@ -28,29 +29,27 @@ function toast(msg) {
 }
 
 // ---------- Small drawings ----------
-const fearn = (size = 40) => `<svg width="${size}" height="${size}" viewBox="0 0 220 220" role="img" aria-label="Fianna"><image href="icon.svg" width="220" height="220"/></svg>`;
-function stoneSVG(lit, of = 4, level = S.profile.level, carve = false) {
-  let n = '';
-  for (let i = 0; i < level; i++) n += `<path ${carve ? `class="carve" style="--d:${0.4 + i * 0.45}s"` : ''} d="M26 ${22 + i * 6} H34" stroke="#C9973F" stroke-width="2.4" stroke-linecap="round"/>`;
-  for (let i = 0; i < of; i++) n += `<path d="M19 ${66 - i * 9} H26" stroke="${i < lit ? '#F07A2E' : '#3E3B4D'}" stroke-width="2.6" stroke-linecap="round"/>`;
-  return `<svg class="stone" width="52" height="80" viewBox="0 0 52 80" aria-hidden="true"><path d="M10 78 L6 22 C6 8,18 2,27 2 C38 2,46 10,45 24 L42 78 Z" fill="#6E6A7E"/><path d="M27 2 C38 2,46 10,45 24 L42 78 L30 78 L34 24 C35 12,31 5,27 2 Z" fill="#57536A"/><path d="M12 30l4-1 1 3-3 2zM36 52l4 1-1 4-4-2zM14 60l3-2 2 3-3 2z" fill="#807C92"/><g fill="#8A8699"><circle cx="14" cy="34" r="1"/><circle cx="36" cy="44" r=".9"/><circle cx="31" cy="18" r="1"/></g><path d="M26 10 V74" stroke="#3E3B4D" stroke-width="1.6"/>${n}</svg>`;
-}
-function torcSVG(metal, size = 54) {
-  const c = { bronze: ['#6E4A14', '#C9973F', '#E8C27A'], silver: ['#565B66', '#B9BEC9', '#EEF0F4'], gold: ['#8A6510', '#E2B93B', '#FFE9A3'] }[metal];
-  const arc = 'M-9 13 A16 16 0 1 1 9 13';
-  return `<svg class="torcimg" width="${size}" height="${size}" viewBox="-21 -21 42 42" aria-hidden="true"><path d="${arc}" fill="none" stroke="${c[0]}" stroke-width="7" stroke-linecap="round"/><path d="${arc}" fill="none" stroke="${c[1]}" stroke-width="4.600" stroke-linecap="round"/><path d="${arc}" fill="none" stroke="${c[2]}" stroke-width="4.600" stroke-dasharray="1.400 3.200"/><circle cx="-9" cy="13" r="4.400" fill="${c[0]}"/><circle cx="9" cy="13" r="4.400" fill="${c[0]}"/><circle cx="-9" cy="13" r="3" fill="${c[1]}"/><circle cx="9" cy="13" r="3" fill="${c[1]}"/></svg>`;
+const fearn = (size = 40) => heroStone(size, size > 60);
+// The rank stone for the current level; `big` is used on the level-up screen.
+function stoneSVG(lit, of = 4, level = S.profile.level, big = false) { return rankStone(level, big ? 150 : 84, true, big); }
+const BADGE_ART = { first: ['spiral', 'bronze', 'gold'], five: ['bolt', 'bronze', 'gold'], streak7: ['flame', 'ember', 'ember'], level2: ['o2', 'slate', 'gold'], protein5: ['leaf', 'green', 'moss'], mind10: ['mind', 'violet', 'violet'],
+  level3: ['o3', 'blue', 'cyan'], twentyfive: ['shield', 'slate', 'cyan'], streak30: ['flame', 'red', 'gold'], level5: ['o5', 'green', 'moss'], dair: ['leaf', 'brown', 'gold'], hundred: ['star', 'violet', 'gold'] };
+function badgeStone(b, size = 64, lit = true) {
+  const [g, rock, glow] = BADGE_ART[b.id] || ['star', 'slate', 'gold'], c = size / 2;
+  const glyph = g[0] === 'o' && g.length === 2 ? oghamGlyph(Number(g[1]), c, c, size * 0.48, size * 0.05) : iconGlyph(g, c, c - 1, size * 0.46);
+  return `<svg class="stone" width="${size}" height="${Math.round(size * 1.08)}" viewBox="0 0 ${size} ${size * 1.08}" aria-hidden="true">${runeStone(c, c, size * 0.42, size * 0.42, 90 + b.id.length * 7 + b.id.charCodeAt(0), lit ? ROCK[rock] : ROCK.deep, glyph, GLOW[glow], { lit, n: 7 + (b.id.length % 2) })}</svg>`;
 }
 // The cauldron fills toward the day's water goal.
 function cauldron(oz, goal, mini = false) {
   const pct = Math.max(0, Math.min(1, oz / Math.max(1, goal))), prev = ui.waterPrev ?? pct;
   return `<svg viewBox="0 0 200 170" role="img" aria-label="Water: ${oz} of ${goal} ounces" data-water="${pct}" style="--lvl:${prev}">
   <defs><clipPath id="pot${mini ? 'm' : ''}"><path d="M34 52 C22 96 44 142 100 142 C156 142 178 96 166 52 Z"/></clipPath></defs>
-  <path d="M58 136 L46 164 M142 136 L154 164 M100 142 V166" stroke="#6E4A14" stroke-width="9" stroke-linecap="round"/>
+  <path d="M58 136 L46 164 M142 136 L154 164 M100 142 V166" stroke="#07050e" stroke-width="13" stroke-linecap="round"/><path d="M58 136 L46 164 M142 136 L154 164 M100 142 V166" stroke="#6E4A14" stroke-width="9" stroke-linecap="round"/><path d="M30 44 C8 30 8 76 28 70 M170 44 C192 30 192 76 172 70" fill="none" stroke="#07050e" stroke-width="10" stroke-linecap="round"/><path d="M34 52 C22 96 44 142 100 142 C156 142 178 96 166 52 Z" fill="#07050e" stroke="#07050e" stroke-width="13" stroke-linejoin="round"/>
   <path d="M34 52 C22 96 44 142 100 142 C156 142 178 96 166 52 Z" fill="#15112B"/>
   <g clip-path="url(#pot${mini ? 'm' : ''})"><g class="water"><g class="wave"><path d="M-40 62 Q-30 54 -20 62 T0 62 T20 62 T40 62 T60 62 T80 62 T100 62 T120 62 T140 62 T160 62 T180 62 T200 62 T220 62 T240 62 V160 H-40 Z" fill="#6FA8DC"/></g><path d="M0 72 H200 V160 H0 Z" fill="#4E86BD"/></g></g>
   <path d="M34 52 C22 96 44 142 100 142 C156 142 178 96 166 52" fill="none" stroke="#8F6524" stroke-width="8" stroke-linecap="round"/>
   <g stroke="#C9973F" stroke-width="3" stroke-linecap="round"><path d="M40 121 h10 M150 121 h10 M33 101 h10 M157 101 h10 M30 82 h10 M160 82 h10"/></g>
-  <path class="rim" d="M24 50 H176" stroke="#C9973F" stroke-width="12" stroke-linecap="round"/>
+  <path d="M24 50 H176" stroke="#07050e" stroke-width="16" stroke-linecap="round"/><path class="rim" d="M24 50 H176" stroke="#C9973F" stroke-width="12" stroke-linecap="round"/><path d="M28 47 H172" stroke="#F3D08A" stroke-width="2.500" stroke-linecap="round" opacity=".8"/>
   <g fill="#E8C27A"><circle cx="40" cy="50" r="2.400"/><circle cx="70" cy="50" r="2.400"/><circle cx="100" cy="50" r="2.400"/><circle cx="130" cy="50" r="2.400"/><circle cx="160" cy="50" r="2.400"/></g>
   <path d="M30 44 C8 30 8 76 28 70 M170 44 C192 30 192 76 172 70" fill="none" stroke="#8F6524" stroke-width="6" stroke-linecap="round"/></svg>`;
 }
@@ -89,16 +88,26 @@ function viewToday() {
   const { d, plan, mode, comeback, done, lowDay, boss, ready } = todayPlan();
   const hour = new Date().getHours(), greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const st = L.streak(S), prog = L.levelProgress(S), protein = L.proteinOf(d);
-  let trial;
+  let info, acts;
   if (plan === 'rest') {
-    trial = `<p class="tag">Today</p><h3>Rest day</h3><p class="dim">Even the Fianna rested between hunts. Muscle grows on days like this.</p><button class="btn" data-act="start" data-trial="walk" data-mode="min">Take an easy 5-minute walk</button>`;
+    info = `<p class="tag">Today</p><h3>Rest day</h3><p class="dim">Even the Fianna rested between hunts. Muscle grows on days like this.</p>`;
+    acts = `<button class="btn" style="width:100%" data-act="start" data-trial="walk" data-mode="min">Take an easy 5-minute walk</button>`;
   } else {
     const sess = L.buildSession(plan, S.profile.level, mode, { boss });
     const name = plan === 'walk' ? 'Treadmill walk' : TRIALS[plan].short;
-    trial = `<p class="tag">${boss ? 'Boss trial · pass it to earn your next rank' : "Today's trial"}</p><h3>${boss ? `${boss}: ${name.toLowerCase()}` : name}</h3><p class="dim">${L.sessionMinutes(sess)} min · ${modeWords[mode]}${d.energy ? ` · energy ${d.energy} of 5` : ''}</p>` +
-      (done ? `<p class="moss" style="font-weight:650;margin:6px 0 0">Trial complete. Well fought.</p>` : `<button class="btn go pulse" data-act="start" data-trial="${plan}" data-mode="${mode}">Begin trial</button>`) +
-      `<div class="row between" style="margin-top:8px"><button class="btn quiet sm" data-act="tab" data-tab="train">Choose another</button>${!done && mode !== 'min' ? `<button class="btn quiet sm" data-act="start" data-trial="${plan}" data-mode="min">Just 5 minutes</button>` : ''}</div>`;
+    info = `<p class="tag">${boss ? 'Boss trial · earn your next rank' : "Today's trial"}</p><h3 class="herotitle">${boss ? `${boss}` : name}</h3>${boss ? `<p class="dim" style="margin:0">${name}</p>` : ''}<p class="dim">${L.sessionMinutes(sess)} min · ${modeWords[mode].toLowerCase()}${d.energy ? ` · energy ${d.energy} of 5` : ''}</p>`;
+    acts = (done ? `<p class="moss" style="font-weight:700;margin:6px 0 0;text-align:center">Trial complete. Well fought.</p>` : `<button class="btn go" data-act="start" data-trial="${plan}" data-mode="${mode}">Begin trial</button>`) +
+      `<div class="row between" style="margin-top:6px"><button class="btn quiet sm" data-act="tab" data-tab="train">Choose another</button>${!done && mode !== 'min' ? `<button class="btn quiet sm" data-act="start" data-trial="${plan}" data-mode="min">Just 5 minutes</button>` : ''}</div>`;
   }
+  const water = d.water || 0;
+  const stat = (svg, big, label, attrs = '') => `<button class="statstone" ${attrs}>${svg}<span class="statlabel"><b>${big}</b>${label}</span></button>`;
+  const stats = `<div class="statrow">
+    ${stat(numberStone(st.current, ROCK.ember, GLOW.ember, 20), st.current === 1 ? 'day streak' : 'day streak', st.shields ? `${st.shields} ${st.shields === 1 ? 'shield' : 'shields'} banked` : 'shield every 7 days', 'data-act="tab" data-tab="progress"')}
+    ${stat(numberStone(protein, ROCK.green, GLOW.gold, 21), `of ${S.profile.proteinTarget} g`, 'protein', 'data-act="tab" data-tab="fuel"')}
+    ${stat(numberStone(water, ROCK.blue, GLOW.cyan, 22), `of ${S.profile.waterTarget} oz`, 'tap to add 8 oz', 'data-act="water" data-v="8" aria-label="Add 8 ounces of water"')}</div>`;
+  const top = S.profile.level >= LEVELS.length;
+  const stoneCard = `<div class="slab plain"><div class="row between"><h3>Standing stone</h3><span class="small">${prog.count} of ${prog.need} notches</span></div>
+    <div class="row" style="margin-top:8px"><div class="row" style="gap:4px">${Array.from({ length: prog.need }, (_, i) => notchStone(i < prog.count, 60 + i)).join('')}</div><p class="small grow" style="margin:0">${top ? 'You hold the highest rank. Keep adding weight.' : prog.count >= prog.need && !prog.ready ? 'Finish one more that feels doable to rise.' : `${prog.need - prog.count} more full ${prog.need - prog.count === 1 ? 'trial' : 'trials'} to reach Trial ${S.profile.level + 1} (${LEVELS[S.profile.level].minutes} min).`}</p></div></div>`;
   return `
   <div class="top"><div class="grow"><h1>${greet}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1><p class="sub">Trial ${lv().n} · ${lv().rank}, the ${lv().tree.toLowerCase()}</p></div>
     <button class="iconbtn" data-act="sheet" data-sheet="settings" aria-label="Settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button></div>
@@ -109,13 +118,9 @@ function viewToday() {
   ${backupDue() ? `<div class="note">It has been over a week since your last backup. <button class="btn sm" data-act="savebackup" style="margin-top:6px">Save a backup now</button></div>` : ''}
   ${L.lowIntake(S) ? `<div class="note">You logged very little protein two days running. On a GLP-1 that costs muscle. Try a shake or a small protein snack early today.</div>` : ''}
   ${d.energy ? '' : `<div class="cloth"><h3>How is your energy this morning?</h3><p class="small">Your trial adjusts to it. Low energy gets a shorter session, never a skipped one.</p><div class="pick">${[1, 2, 3, 4, 5].map((n) => `<button class="btn" data-act="energy" data-v="${n}" aria-label="Energy ${n} of 5">${n}</button>`).join('')}</div><div class="row between small" style="margin-top:4px"><span>Drained</span><span>Strong</span></div></div>`}
-  <div class="slab band">${trial}</div>
-  <div class="grid2">
-    <div class="slab"><p class="small">Streak</p><p class="big ember">${st.current ? flame : ''}${st.current} ${st.current === 1 ? 'day' : 'days'}</p><p class="small">${st.shields ? `${st.shields} ${st.shields === 1 ? 'shield' : 'shields'} banked` : 'A shield every 7 days'}</p></div>
-    <button class="slab" data-act="tab" data-tab="fuel" style="text-align:left;color:inherit;font:inherit;border-left:0;border-right:0"><p class="small">Protein</p><p class="big">${protein} <span class="small">/ ${S.profile.proteinTarget} g</span></p></button>
-  </div>
-  <div class="slab"><div class="row">${stoneSVG(prog.count)}<div><p class="small">Standing stone</p><h3>${prog.count} of ${prog.need} notches carved</h3><p class="small">${S.profile.level >= LEVELS.length ? 'You hold the highest rank. Keep adding weight.' : prog.count >= prog.need && !prog.ready ? 'Finish one more that feels doable to rise.' : `${prog.need - prog.count} more full ${prog.need - prog.count === 1 ? 'trial' : 'trials'} to reach Trial ${S.profile.level + 1} (${LEVELS[S.profile.level].minutes} min).`}</p></div></div></div>
-  ${waterCard(true)}
+  <div class="slab"><div class="herorow">${heroStone(108, true)}<div class="grow">${info}</div></div>${acts}</div>
+  ${stats}
+  ${stoneCard}
   ${ui.brief ? `<div class="cloth"><h3>Morning briefing</h3><p style="margin:0">${esc(ui.brief)}</p></div>` : ''}
   <div class="grid2"><button class="btn" data-act="brief" ${ui.busy === 'brief' ? 'disabled' : ''}>${ui.busy === 'brief' ? 'Preparing…' : 'Morning briefing'}</button><button class="btn" data-act="sheet" data-sheet="coach">Ask your coach</button></div>
   ${S.settings.dev ? '<button class="btn sm" style="width:100%;margin-bottom:12px" data-act="sheet" data-sheet="dev">Developer: simulate health data</button>' : ''}
@@ -223,7 +228,7 @@ function viewProgress() {
   const r = L.weekReport(S), show = (v, unit = '') => (v == null ? '–' : v + unit);
   const tiles = [['Strength trials', r.strength], ['Walks', r.walks], ['Minutes trained', r.minutes], ['Protein days hit', `${r.proteinHit} of 7`], ['Avg energy', show(r.energyAvg, ' / 5')], ['Avg pump', show(r.pumpAvg, ' / 5')], ['Avg sleep', show(r.sleepAvg, ' h')], ['Mind sessions', r.mind]];
   const recs = Object.keys(EX).map((id) => [id, L.bestFor(S, id)]).filter(([, b]) => b && b.w).map(([id, b]) => `<li><span class="grow">${EX[id].name}</span><span class="num">${b.w} lb × ${b.r}</span></li>`).join('');
-  const badges = BADGES.map((b) => `<div class="torc ${S.badges[b.id] ? '' : 'locked'}">${torcSVG(b.metal)}<b>${b.name}</b>${b.desc}</div>`).join('');
+  const badges = BADGES.map((b) => `<div class="torc ${S.badges[b.id] ? '' : 'locked'}">${badgeStone(b, 68, !!S.badges[b.id])}<b>${b.name}</b>${b.desc}</div>`).join('');
   const rewards = S.rewards.map((w, i) => `<li><span class="grow">${esc(w.text)}<br><span class="small">${S.profile.level >= w.level ? 'Earned. Go claim it.' : `Unlocks at Trial ${w.level}`}</span></span><button class="iconbtn" data-act="delreward" data-i="${i}" aria-label="Remove reward">✕</button></li>`).join('');
   return `<div class="top"><div class="grow"><h1>Progress</h1><p class="sub">Dispatch for ${niceDate(r.from)} to ${niceDate(r.to)}</p></div></div>
   <div class="grid2">${tiles.map(([k, v]) => `<div class="slab"><p class="small">${k}</p><p class="big">${v}</p></div>`).join('')}</div>
@@ -234,7 +239,7 @@ function viewProgress() {
   ${doseCard()}
   <h2>Progress photos</h2><div class="cloth">${photoCard()}<label class="btn sm" style="margin-top:10px;color:var(--bone)">Add a photo<input type="file" accept="image/*" data-progphoto hidden></label><p class="small" style="margin-top:8px">Photos stay on this phone only. They are not included in backups.</p></div>
   <h2>Strength records</h2><div class="cloth">${recs ? `<ul class="list">${recs}</ul>` : '<p class="dim" style="margin:0">Log weights in a trial and your best lifts appear here.</p>'}</div>
-  <h2>Torcs</h2><div class="cloth"><div class="torcs">${badges}</div></div>
+  <h2>Rune stones earned</h2><div class="cloth"><div class="torcs">${badges}</div></div>
   <h2>Your rewards</h2><div class="cloth">${rewards ? `<ul class="list">${rewards}</ul>` : '<p class="small">Promise yourself something real for reaching a new trial.</p>'}
     <form data-form="reward" class="row" style="margin-top:8px"><div class="grow"><label for="rw" style="margin-top:0">Reward</label><input id="rw" name="text" placeholder="New lifting gloves" required></div><div style="width:110px"><label for="rl" style="margin-top:0">At trial</label><select id="rl" name="level">${[2, 3, 4, 5].map((n) => `<option>${n}</option>`).join('')}</select></div><button class="btn" style="align-self:flex-end">Add</button></form></div>`;
 }
@@ -315,8 +320,8 @@ function sheetPlayer() {
   }
   if (P.phase === 'done') {
     const r = P.result, prog = L.levelProgress(S);
-    return `<div style="position:relative">${r.leveled || r.badges.length ? embers() : ''}<div class="spacer"></div><div style="text-align:center;position:relative">${r.leveled ? `<div class="bigstone">${stoneSVG(0, 4, S.profile.level, true)}</div><h1 style="margin-top:12px">You rise to Trial ${S.profile.level}</h1><p class="sub">${lv().rank}, the ${lv().tree.toLowerCase()}: ${lv().meaning}.</p><p class="dim" style="margin-top:8px">${S.profile.level} ${S.profile.level === 1 ? 'stroke' : 'strokes'} on the stone spell ${lv().rank} in Ogham. Your sessions are now ${lv().minutes} minutes.</p>` : `<div class="bigstone" style="display:inline-block">${stoneSVG(r.counted ? prog.count : 0)}</div><h1 style="margin-top:8px">${r.counted ? 'A notch is carved' : 'You showed up'}</h1><p class="dim">${r.counted ? `${prog.count} of ${prog.need} toward Trial ${Math.min(S.profile.level + 1, LEVELS.length)}.` : 'The five-minute trial keeps your streak alive. That is how warriors are made.'}</p>`}
-    ${r.badges.map((x, i) => `<div class="cloth award" style="margin-top:12px;--d:${0.5 + i * 0.25}s"><div class="row" style="justify-content:center">${torcSVG(x.metal, 48)}<div style="text-align:left"><p class="small">New torc</p><h3>${x.name}</h3></div></div></div>`).join('')}
+    return `<div style="position:relative">${r.leveled || r.badges.length ? embers() : ''}<div class="spacer"></div><div style="text-align:center;position:relative">${r.leveled ? `<div class="bigstone award">${stoneSVG(0, 4, S.profile.level, true)}</div><h1 style="margin-top:12px">You rise to Trial ${S.profile.level}</h1><p class="sub">${lv().rank}, the ${lv().tree.toLowerCase()}: ${lv().meaning}.</p><p class="dim" style="margin-top:8px">The ${S.profile.level} ${S.profile.level === 1 ? 'stroke' : 'strokes'} on your stone spell ${lv().rank} in Ogham. Your sessions are now ${lv().minutes} minutes.</p>` : `<div class="row" style="justify-content:center;gap:4px">${Array.from({ length: prog.need }, (_, i) => notchStone(r.counted && i < prog.count, 60 + i, 46)).join('')}</div><h1 style="margin-top:8px">${r.counted ? 'A notch is carved' : 'You showed up'}</h1><p class="dim">${r.counted ? `${prog.count} of ${prog.need} toward Trial ${Math.min(S.profile.level + 1, LEVELS.length)}.` : 'The five-minute trial keeps your streak alive. That is how warriors are made.'}</p>`}
+    ${r.badges.map((x, i) => `<div class="cloth award" style="margin-top:12px;--d:${0.5 + i * 0.25}s"><div class="row" style="justify-content:center">${badgeStone(x, 60)}<div style="text-align:left"><p class="small">New rune stone</p><h3>${x.name}</h3></div></div></div>`).join('')}
     ${r.rewards.map((x) => `<div class="note" style="margin-top:12px;text-align:left">Reward earned: ${esc(x.text)}</div>`).join('')}</div>
     <div class="spacer"></div><button class="btn go" data-act="close">Done</button></div>`;
   }
@@ -366,7 +371,7 @@ function render() {
   const app = $('#app'); app.className = freshTab ? 'enter' : '';
   const brand = `<div class="brandbar">${wordmark(108)}</div>`;
   app.innerHTML = woad + brand + VIEWS[ui.tab]();
-  $('#tabs').innerHTML = `<div>${TABS.map(([id, label, path]) => `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>${label}</button>`).join('')}</div>`;
+  $('#tabs').innerHTML = `<div>${TABS.map(([id, label, path]) => `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}>${tabStone(id, ui.tab === id, 40 + TABS.findIndex((t) => t[0] === id))}${label}</button>`).join('')}</div>`;
   $('#overlay').innerHTML = ui.sheet ? `<div class="sheet${freshSheet ? ' enter' : ''}" role="dialog" aria-modal="true">${ui.sheet === 'setup' ? '' : brand}${SHEETS[ui.sheet]()}</div>` : '';
   document.querySelectorAll('svg[data-water]').forEach((el) => requestAnimationFrame(() => requestAnimationFrame(() => el.style.setProperty('--lvl', el.dataset.water))));
   ui.waterPrev = Math.max(0, Math.min(1, ((S.days[today()] || {}).water || 0) / Math.max(1, S.profile.waterTarget)));
@@ -523,7 +528,7 @@ const FORMS = {
     L.day(S, today()).food.push(item);
     if (f.keep && !S.meals.some((m) => m.name.toLowerCase() === item.name.toLowerCase())) S.meals.push({ ...item });
     ui.mealDraft = null; ui.mealNote = ''; const fresh = L.awardBadges(S); save(); render();
-    toast(fresh.length ? `New torc: ${fresh[0].name}` : `Added ${item.protein} g protein.`);
+    toast(fresh.length ? `New rune stone: ${fresh[0].name}` : `Added ${item.protein} g protein.`);
   },
   dev: (f) => { ui.devDay = f.day || today(); L.setHealth(S, ui.devDay, f); if (S.days[ui.devDay]) delete S.days[ui.devDay].bandRead; save(); render(); toast('Saved.'); },
   journal: (f) => { L.day(S, today()).journal = { grat: f.grat.trim(), refl: f.refl.trim() }; save(); toast('Journal saved.'); },
@@ -581,6 +586,11 @@ function shrink(file, max = 1024) {
   });
 }
 
+{
+  const st = document.documentElement.style;
+  st.setProperty('--slab-red', slabURI(ROCK.red, 320, 54, 3)); st.setProperty('--slab-slate', slabURI(ROCK.slate, 200, 48, 19)); st.setProperty('--slab-bronze', slabURI([38, 55, 40], 200, 48, 23));
+  st.setProperty('--plate', plateURI(true)); st.setProperty('--plate-plain', plateURI(false));
+}
 window.__fianna = { get state() { return S; }, ui, render, start };
 render();
 // Opening: let the rune finish carving and glow, then lift the stone away. A tap skips it.

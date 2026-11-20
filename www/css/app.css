@@ -248,3 +248,93 @@ body { background-color: var(--woad); background-image: var(--ogham), var(--wool
 @keyframes grow { from { transform: var(--from); } }
 #splash .lit { fill: #F07A2E; stroke: none; }
 @media (prefers-reduced-motion: reduce) { #splash .carve-stem, #splash .carve-arm { animation: none; } }
+
+/* ================= Rune stone theme ================= */
+@font-face { font-family: 'Cinzel'; font-weight: 600; font-display: swap; src: url(../fonts/cinzel-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Cinzel'; font-weight: 700; font-display: swap; src: url(../fonts/cinzel-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Alegreya Sans'; font-weight: 400; font-display: swap; src: url(../fonts/alegreya-sans-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Alegreya Sans'; font-weight: 500; font-display: swap; src: url(../fonts/alegreya-sans-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Alegreya Sans'; font-weight: 700; font-display: swap; src: url(../fonts/alegreya-sans-latin-700-normal.woff2) format('woff2'); }
+:root { --ink: #07050e; --gold: hsl(42 70% 66%); --bone: #F3EBD9; --mist: #C9C2DE; --dim: #A9A2C4; --ember: hsl(22 95% 58%); --display: 'Cinzel', Georgia, serif; }
+body { font: 17px/1.45 'Alegreya Sans', system-ui, sans-serif; color: var(--bone); background: hsl(246 50% 6%) radial-gradient(ellipse 120% 70% at 50% 0, hsl(252 44% 21%) 0, hsl(248 46% 11%) 55%, hsl(244 50% 6%) 100%) fixed; }
+.sheet { background: hsl(246 50% 6%) radial-gradient(ellipse 120% 70% at 50% 0, hsl(252 44% 19%) 0, hsl(248 46% 10%) 55%, hsl(244 50% 6%) 100%); }
+#app { padding-left: 16px; }
+.woad { display: none; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 25px; letter-spacing: 0; text-shadow: 0 2px 0 var(--ink); }
+h2 { font-family: var(--display); font-weight: 700; font-size: 18px; margin: 24px 0 10px; text-shadow: 0 2px 0 var(--ink); }
+h3 { font-family: var(--display); font-weight: 700; font-size: 17px; }
+.herotitle { font-size: 23px; line-height: 1.15; }
+.sub, .tag { color: var(--gold); font-size: 15px; font-weight: 500; }
+.dim { color: var(--mist); font-size: 16px; } .small { font-size: 14px; color: var(--dim); }
+.big { font-family: var(--display); font-weight: 700; font-size: 24px; }
+.ember { color: hsl(22 95% 66%); text-shadow: 0 0 10px hsl(22 95% 58% / .6); } .bronze { color: var(--gold); } .moss { color: hsl(100 55% 62%); }
+.stone { display: block; max-width: 100%; height: auto; flex: none; overflow: visible; }
+.pulse { animation: runepulse 3.200s ease-in-out infinite; }
+@keyframes runepulse { 50% { opacity: .45; } }
+
+/* carved plates */
+.slab { background: none; border: 22px solid transparent; border-image: var(--plate) 26 fill / 26px / 2px round; padding: 4px 2px; box-shadow: none; margin-bottom: 10px; }
+.slab.plain, .grid2 .slab, .bubble.coach { border-image-source: var(--plate-plain); }
+.slab.band { padding-top: 4px; } .slab.band::before { content: none; }
+.grid2 .slab { border-width: 18px; padding: 0; }
+.herorow { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.cloth { background: linear-gradient(hsl(248 34% 17%), hsl(250 36% 12%)); border: 1.500px solid var(--ink); border-radius: 6px; box-shadow: inset 0 1px 0 hsl(250 22% 34%), inset 0 -1px 0 rgba(0,0,0,.5), 0 3px 6px rgba(0,0,0,.35); }
+.note { background: hsl(18 50% 15%); border: 1.500px solid var(--ink); border-left: 3px solid var(--ember); border-radius: 4px; }
+.cue { background: hsl(250 30% 13%); border: 1.500px solid var(--ink); border-left: 3px solid var(--gold); border-radius: 4px; font-size: 16px; }
+.stage { background: hsl(250 30% 11%) radial-gradient(ellipse at 50% 80%, hsl(252 40% 22%) 0, hsl(250 30% 11%) 70%); border: 1.500px solid var(--ink); border-radius: 6px; box-shadow: inset 0 0 0 1px hsl(250 22% 30%); }
+
+/* stone buttons */
+.btn { background: var(--slab-slate) center / 100% 100% no-repeat; border: 0; border-radius: 0; color: var(--bone); font-weight: 700; text-shadow: 0 2px 0 var(--ink); padding: 8px 16px 13px; min-height: 48px; }
+.btn:active { transform: translateY(2px); filter: brightness(1.15); }
+.btn.sm { font-size: 15px; padding: 6px 12px 11px; min-height: 44px; }
+.btn.quiet { background: none; color: var(--gold); text-shadow: none; padding: 6px 8px; }
+.btn.go { background-image: var(--slab-red); font-family: var(--display); font-size: 18px; letter-spacing: .04em; text-transform: uppercase; color: hsl(44 100% 80%); text-shadow: 0 0 10px hsl(40 100% 60% / .9), 0 2px 0 var(--ink); min-height: 56px; border: 0; animation: none; }
+.btn.go.pulse { animation: none; }
+.btn.on { background-image: var(--slab-bronze); color: hsl(46 100% 84%); text-shadow: 0 0 8px hsl(42 100% 60% / .8), 0 2px 0 var(--ink); border: 0; }
+.btn[disabled] { filter: saturate(.4) brightness(.8); }
+.iconbtn { color: var(--gold); }
+label.btn { display: inline-flex; }
+
+/* stat stones */
+.statrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 4px 0 12px; }
+.statstone { background: none; border: 0; padding: 0; color: inherit; font: inherit; display: grid; justify-items: center; gap: 2px; }
+.statstone:active .stone { transform: scale(.95); }
+.statstone .stone { width: 100%; max-width: 108px; transition: transform .12s; }
+.statlabel { font-size: 13px; line-height: 1.25; color: var(--dim); text-align: center; }
+.statlabel b { display: block; font-size: 15px; font-weight: 500; color: var(--mist); }
+
+/* carved fields and meters */
+input, textarea, select { background: #0a0814; border: 1.500px solid var(--ink); border-radius: 5px; box-shadow: inset 0 2px 4px rgba(0,0,0,.7), 0 1px 0 hsl(250 22% 34%); color: var(--bone); font-family: inherit; font-size: 17px; }
+input[type=number], input[type=time], input[type=date] { font-family: var(--display); font-weight: 700; font-size: 19px; color: hsl(44 90% 74%); text-shadow: 0 0 8px hsl(42 90% 60% / .45); }
+label { color: var(--mist); font-size: 15px; }
+.meter { height: 9px; border-radius: 5px; background: var(--ink); box-shadow: 0 1px 0 hsl(250 22% 32%); }
+.meter > i { background: linear-gradient(hsl(22 95% 68%), hsl(22 95% 52%)); box-shadow: 0 0 8px hsl(22 95% 58% / .7); border-radius: 5px; }
+.meter.water > i { background: linear-gradient(hsl(190 95% 72%), hsl(200 85% 52%)); box-shadow: 0 0 8px hsl(190 95% 62% / .7); }
+.list li { border-bottom: 1px solid hsl(250 24% 22%); }
+
+/* tab bar of stones */
+.tabs { background: hsl(246 46% 7%); border-top: 2px solid hsl(38 45% 40%); box-shadow: 0 -8px 16px rgba(0,0,0,.4); }
+.tab { font-family: inherit; font-size: 13px; font-weight: 500; color: var(--dim); padding: 6px 0 7px; gap: 0; min-height: 70px; }
+.tab svg, .tab.on svg { width: 52px; height: 48px; animation: none; filter: none; }
+.tab.on { color: hsl(22 95% 68%); font-weight: 700; }
+
+.torcs { gap: 12px 8px; } .torc { font-size: 14px; color: var(--dim); display: grid; justify-items: center; } .torc.locked { opacity: .75; } .torc b { font-family: var(--display); font-size: 14px; }
+.count { font-family: var(--display); text-shadow: 0 3px 0 var(--ink); }
+.count.last { color: hsl(22 95% 66%); text-shadow: 0 0 18px hsl(22 95% 58% / .8), 0 3px 0 var(--ink); }
+.phase { font-family: var(--display); color: hsl(22 95% 66%); text-shadow: 0 0 8px hsl(22 95% 58% / .6); }
+.dots i { height: 5px; background: hsl(250 24% 24%); border-radius: 1px; } .dots i.done { background: var(--gold); } .dots i.now { background: var(--ember); box-shadow: 0 0 6px var(--ember); }
+.bigstone svg { width: 170px; height: auto; margin: 0 auto; }
+.breath { border-color: var(--gold); background: radial-gradient(circle, hsl(252 44% 24%) 0, hsl(248 46% 10%) 70%); box-shadow: 0 0 24px hsl(42 90% 60% / .25); }
+.breath span, .medline { font-family: var(--display); }
+.bubble.me { background: hsl(250 34% 22%); border: 1.500px solid var(--ink); border-radius: 6px; }
+.bubble.coach { background: none; border: 18px solid transparent; border-image: var(--plate-plain) 26 fill / 26px / 2px round; border-radius: 0; padding: 0; }
+.proverb q { font-family: var(--display); font-style: normal; font-size: 15px; color: var(--gold); }
+.toast { background: hsl(42 60% 86%); border: 2px solid var(--ink); border-radius: 4px; font-weight: 700; }
+.cauldron svg path, .cauldron svg circle { paint-order: stroke; }
+#splash { background: hsl(246 50% 6%); }
+.btn { background-color: transparent; }
+.btn.go { background: var(--slab-red) center / 100% 100% no-repeat transparent; border: 0; }
+.btn.on { background: var(--slab-bronze) center / 100% 100% no-repeat transparent; border: 0; }
+.btn.quiet { background: none; }
+#ringArc { stroke-width: 3; filter: none; }
+.ring svg circle { stroke-width: 3; }

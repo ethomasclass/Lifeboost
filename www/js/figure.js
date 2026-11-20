@@ -3,7 +3,9 @@
 // interpolates between them. Limb lengths are fixed so nothing can stretch.
 
 const L = { T: 58, N: 20, UA: 32, FA: 30, TH: 42, SH: 40, FT: 12 };
-const C = { near: '#F2EADB', far: '#9A92B8', prop: '#57536A', propDark: '#3E3B4D', db: '#C9973F', dbDark: '#8F6524', floor: '#3A3275' };
+const C = { near: 'hsl(40 30% 72%)', hi: 'hsl(42 45% 90%)', far: 'hsl(250 14% 46%)', farHi: 'hsl(250 16% 60%)', ink: '#07050e', prop: 'hsl(250 20% 34%)', propHi: 'hsl(250 22% 50%)', propDark: 'hsl(250 20% 24%)', db: 'hsl(38 60% 52%)', dbDark: 'hsl(38 55% 34%)', dbHi: 'hsl(46 90% 80%)', floor: 'hsl(250 24% 26%)' };
+// A limb in the game-art style: dark outline, flat fill, a light strip on the lit side.
+const limbSeg = (p, q, w, fill, hi) => line(p, q, w + 3, C.ink) + line(p, q, w, fill) + line([p[0] - 0.8, p[1] - w * 0.22], [q[0] - 0.8, q[1] - w * 0.22], Math.max(1.2, w * 0.34), hi, 'opacity="0.7"');
 const FLOOR = 228;
 
 const rad = (d) => (d * Math.PI) / 180;
@@ -70,12 +72,13 @@ function solve(anim, k) {
 }
 
 const f = (n) => Math.round(n * 10) / 10;
-const line = (p, q, w, c, extra = '') => `<line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" ${extra}/>`;
-const bell = (p, big) => `<g transform="translate(${f(p[0])} ${f(p[1])})"><rect x="-${big ? 15 : 13}" y="-3" width="${big ? 30 : 26}" height="6" rx="2" fill="${C.dbDark}"/><circle r="${big ? 10 : 8}" fill="${C.db}"/><circle r="3" fill="${C.dbDark}"/></g>`;
+function line(p, q, w, c, extra = '') { return lineRaw(p, q, w, c, extra); }
+const lineRaw = (p, q, w, c, extra = '') => `<line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" ${extra}/>`;
+const bell = (p, big) => `<g transform="translate(${f(p[0])} ${f(p[1])})"><rect x="-${big ? 17 : 15}" y="-5" width="${big ? 34 : 30}" height="10" rx="3" fill="${C.ink}"/><rect x="-${big ? 16 : 14}" y="-4" width="${big ? 32 : 28}" height="8" rx="2.500" fill="${C.dbDark}"/><circle r="${big ? 11.5 : 9.5}" fill="${C.ink}"/><circle r="${big ? 10 : 8}" fill="${C.db}"/><circle cx="-2" cy="-2" r="${big ? 4 : 3}" fill="${C.dbHi}"/></g>`;
 
 function props(list = []) {
   return list.map((p) => {
-    if (p[0] === 'pad') return line([p[1], p[2]], [p[3], p[4]], 9, C.prop);
+    if (p[0] === 'pad') return line([p[1], p[2]], [p[3], p[4]], 12, C.ink) + line([p[1], p[2]], [p[3], p[4]], 9, C.prop) + line([p[1], p[2] - 2], [p[3], p[4] - 2], 3, C.propHi);
     if (p[0] === 'post') return line([p[1], p[2]], [p[1], FLOOR], 5, C.propDark);
     if (p[0] === 'bar') return line([p[1], p[2]], [p[3], p[4]], 4, C.propDark);
     if (p[0] === 'mat') return line([p[1], FLOOR - 3], [p[2], FLOOR - 3], 5, '#4A4380');
@@ -88,21 +91,19 @@ function sideFigure(anim, k) {
   const off = [4, -3];
   const o = (p) => add(p, off);
   let s = props(anim.props);
-  // far side first, lighter
-  s += line(o(j.hip), o(j.farLeg[0]), 9, C.far) + line(o(j.farLeg[0]), o(j.farLeg[1]), 8, C.far) + line(o(j.farLeg[1]), o(j.farToe), 6, C.far);
-  s += line(o(j.sh), o(j.farArm[0]), 8, C.far) + line(o(j.farArm[0]), o(j.farArm[1]), 7, C.far);
-  if (anim.db === 'both') s += `<g opacity="0.7">${bell(o(j.farArm[1]))}</g>`;
+  // far side first, darker
+  s += limbSeg(o(j.hip), o(j.farLeg[0]), 9, C.far, C.farHi) + limbSeg(o(j.farLeg[0]), o(j.farLeg[1]), 8, C.far, C.farHi) + limbSeg(o(j.farLeg[1]), o(j.farToe), 6, C.far, C.farHi);
+  s += limbSeg(o(j.sh), o(j.farArm[0]), 8, C.far, C.farHi) + limbSeg(o(j.farArm[0]), o(j.farArm[1]), 7, C.far, C.farHi);
+  if (anim.db === 'both') s += `<g opacity="0.75">${bell(o(j.farArm[1]))}</g>`;
   // torso, near leg, head
-  s += line(j.hip, j.sh, 16, C.near);
-  s += line(j.hip, j.leg[0], 10, C.near) + line(j.leg[0], j.leg[1], 9, C.near) + line(j.leg[1], j.toe, 7, C.near);
-  s += `<circle cx="${f(j.head[0])}" cy="${f(j.head[1])}" r="12" fill="${C.near}"/>`;
-  // near arm with a dark outline so it reads over the torso
-  s += line(j.sh, j.arm[0], 12, '#221C44') + line(j.arm[0], j.arm[1], 11, '#221C44');
-  s += line(j.sh, j.arm[0], 9, C.near) + line(j.arm[0], j.arm[1], 8, C.near);
+  s += limbSeg(j.hip, j.sh, 16, C.near, C.hi);
+  s += limbSeg(j.hip, j.leg[0], 10, C.near, C.hi) + limbSeg(j.leg[0], j.leg[1], 9, C.near, C.hi) + limbSeg(j.leg[1], j.toe, 7, C.near, C.hi);
+  s += `<circle cx="${f(j.head[0])}" cy="${f(j.head[1])}" r="13.500" fill="${C.ink}"/><circle cx="${f(j.head[0])}" cy="${f(j.head[1])}" r="12" fill="${C.near}"/><circle cx="${f(j.head[0] - 3)}" cy="${f(j.head[1] - 3)}" r="6" fill="${C.hi}" opacity="0.6"/>`;
+  s += limbSeg(j.sh, j.arm[0], 9, C.near, C.hi) + limbSeg(j.arm[0], j.arm[1], 8, C.near, C.hi);
   if (anim.db && anim.db !== 'none') s += bell(j.arm[1], anim.db === 'goblet');
   // working muscle glows ember, brightest at the hardest point of the rep
   const glow = (0.22 + 0.68 * (anim.hotAt === 'B' ? k : 1 - k)).toFixed(2), mix = (p, q, t) => lerpP(p, q, t);
-  const hl = (p, q, w) => line(p, q, w, '#F07A2E', `opacity="${glow}"`), dot = (p, r) => `<circle cx="${f(p[0])}" cy="${f(p[1])}" r="${r}" fill="#F07A2E" opacity="${glow}"/>`;
+  const hl = (p, q, w) => line(p, q, w + 8, 'hsl(22 95% 58%)', `opacity="${(glow * 0.3).toFixed(2)}"`) + line(p, q, w, 'hsl(22 95% 58%)', `opacity="${glow}"`) + line(p, q, w * 0.35, 'hsl(40 100% 82%)', `opacity="${glow}"`), dot = (p, r) => `<circle cx="${f(p[0])}" cy="${f(p[1])}" r="${r + 5}" fill="hsl(22 95% 58%)" opacity="${(glow * 0.3).toFixed(2)}"/><circle cx="${f(p[0])}" cy="${f(p[1])}" r="${r}" fill="hsl(22 95% 58%)" opacity="${glow}"/>`;
   const hot = { chest: () => hl(mix(j.sh, j.hip, 0.08), mix(j.sh, j.hip, 0.42), 9), back: () => hl(mix(j.sh, j.hip, 0.1), mix(j.sh, j.hip, 0.55), 9), core: () => hl(mix(j.hip, j.sh, 0.1), mix(j.hip, j.sh, 0.5), 9),
     legs: () => hl(mix(j.hip, j.leg[0], 0.15), mix(j.hip, j.leg[0], 0.9), 6), calves: () => hl(mix(j.leg[0], j.leg[1], 0.1), mix(j.leg[0], j.leg[1], 0.7), 5), glutes: () => dot(j.hip, 8),
     arms: () => hl(mix(j.sh, j.arm[0], 0.2), mix(j.sh, j.arm[0], 0.9), 5), shoulders: () => dot(j.sh, 7) }[anim.hot];
@@ -130,7 +131,7 @@ function frontFigure(anim, k) {
     const shd = [150 + side * 24, cy];
     const v = (ang) => [side * Math.sin(rad(ang)), Math.cos(rad(ang))];
     const el = add(shd, v(a), L.UA), hd = add(el, v(fore ?? a + (anim.lying ? bend : -bend)), L.FA);
-    s += line(shd, el, 12, '#221C44') + line(el, hd, 11, '#221C44') + line(shd, el, 9, C.near) + line(el, hd, 8, C.near) + bell(hd);
+    s += line(shd, el, 12, C.ink) + line(el, hd, 11, C.ink) + line(shd, el, 9, C.near) + line(el, hd, 8, C.near) + bell(hd);
   }
   const glow = (0.22 + 0.68 * (anim.hotAt === 'B' ? k : 1 - k)).toFixed(2);
   if (anim.hot === 'chest') s += `<line x1="134" y1="${cy + (anim.lying ? 0 : 12)}" x2="166" y2="${cy + (anim.lying ? 0 : 12)}" stroke="#F07A2E" stroke-width="10" stroke-linecap="round" opacity="${glow}"/>`;
