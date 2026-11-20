@@ -37,13 +37,16 @@ export const LEVELS = [
 export const TRIALS = {
   chest_back: { name: 'Trial of Chest and Back', short: 'Chest and back', pool: ['incline_press', 'row', 'flat_press', 'fly', 'pullover', 'curl'], count: [2, 3, 4, 5, 6],
     finishers: [{ id: 'a', steps: [{ ex: 'incline_pushup', secs: 45, note: 'As many good reps as you can.' }, { ex: 'squeeze_press', secs: 30, note: 'Light bells. Slow and constant squeeze.' }] },
-      { id: 'b', steps: [{ ex: 'flat_press', secs: 40, note: 'Drop set: lighter bells, steady reps, stop just short of failure.' }, { ex: 'fly', secs: 35, note: 'Drop the weight again and keep going.' }] }] },
+      { id: 'b', steps: [{ ex: 'flat_press', secs: 40, note: 'Drop set: lighter bells, steady reps, stop just short of failure.' }, { ex: 'fly', secs: 35, note: 'Drop the weight again and keep going.' }] },
+      { id: 'c', well: true, steps: [{ ex: 'pullover', secs: 40, note: 'Gift of the Well. One light bell, long slow stretch.' }, { ex: 'incline_pushup', secs: 40, note: 'Smooth reps to finish.' }] }] },
   legs_core: { name: 'Trial of Legs and Core', short: 'Legs and core', pool: ['goblet_squat', 'dead_bug', 'rdl', 'split_squat', 'leg_raise', 'calf_raise'], count: [2, 3, 4, 5, 6],
     finishers: [{ id: 'a', steps: [{ ex: 'squat_pulse', secs: 45, note: 'Short bounces in the bottom half.' }, { ex: 'glute_bridge', secs: 30, note: 'Hold at the top and squeeze.' }] },
-      { id: 'b', steps: [{ ex: 'split_squat', secs: 40, note: 'Bodyweight only. Switch legs halfway, no rest.' }, { ex: 'leg_raise', secs: 35, note: 'Slow on the way down.' }] }] },
+      { id: 'b', steps: [{ ex: 'split_squat', secs: 40, note: 'Bodyweight only. Switch legs halfway, no rest.' }, { ex: 'leg_raise', secs: 35, note: 'Slow on the way down.' }] },
+      { id: 'c', well: true, steps: [{ ex: 'calf_raise', secs: 40, note: 'Gift of the Well. Pause at the top of every rep.' }, { ex: 'dead_bug', secs: 40, note: 'Slow and controlled.' }] }] },
   chest_shoulders: { name: 'Trial of Chest and Shoulders', short: 'Chest and shoulders', pool: ['flat_press', 'plank', 'shoulder_press', 'fly_incline', 'lateral_raise', 'triceps_ext'], count: [2, 3, 4, 5, 6],
     finishers: [{ id: 'a', steps: [{ ex: 'lateral_raise', secs: 30, note: 'Very light. Do not stop moving.' }, { ex: 'squeeze_press', secs: 45, note: 'Squeeze until your chest burns.' }] },
-      { id: 'b', steps: [{ ex: 'incline_pushup', secs: 40, note: 'As many good reps as you can.' }, { ex: 'lateral_raise', secs: 35, note: 'Very light. Half reps at the end are fine.' }] }] },
+      { id: 'b', steps: [{ ex: 'incline_pushup', secs: 40, note: 'As many good reps as you can.' }, { ex: 'lateral_raise', secs: 35, note: 'Very light. Half reps at the end are fine.' }] },
+      { id: 'c', well: true, steps: [{ ex: 'fly_incline', secs: 40, note: 'Gift of the Well. Light bells, wide and slow.' }, { ex: 'plank', secs: 40, note: 'Hold steady and breathe.' }] }] },
 };
 
 // Monday = 1 ... Sunday = 0 (JS getDay)

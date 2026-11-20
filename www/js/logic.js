@@ -11,7 +11,7 @@ export function newState() {
     v: 1,
     profile: { name: '', level: 1, weightLb: null, proteinTarget: 120, waterTarget: 80, doseDay: null, dbStep: 5, stepsGoal: 7000, setup: false },
     settings: { times: { wake: '05:30', midday: '12:00', evening: '19:30', bedtime: '21:30' }, weekend: { wake: '07:30', midday: '12:30', evening: '19:30', bedtime: '22:00' }, notify: true, skipDate: null, apiKey: '', workspaceId: '', model: 'claude-sonnet-5-5', speak: true, drum: false, lastBackup: null, dev: false },
-    sessions: [], days: {}, weights: [], meals: [], rewards: [], badges: {}, chat: [], doses: [], health: {},
+    sessions: [], days: {}, weights: [], meals: [], rewards: [], badges: {}, chat: [], doses: [], health: {}, rerolls: [],
   };
 }
 
@@ -97,8 +97,10 @@ export function levelProgress(state) {
   const lvl = state.profile.level;
   const since = state.profile.levelSince || '0000-00-00';
   const list = state.sessions.filter((s) => isStrength(s) && s.level === lvl && s.mode !== 'min' && s.date >= since);
-  const doable = list.filter((s) => s.felt === 'easy' || s.felt === 'doable').length;
-  return { count: Math.min(list.length, 4), doable, need: 4, ready: list.length >= 4 && doable >= 3 && lvl < LEVELS.length };
+  // A trial blessed by the Rune of the Salmon counts twice.
+  const worth = (s) => (s.double ? 2 : 1), n = list.reduce((a, s) => a + worth(s), 0);
+  const doable = list.filter((s) => s.felt === 'easy' || s.felt === 'doable').reduce((a, s) => a + worth(s), 0);
+  return { count: Math.min(n, 4), doable, need: 4, ready: n >= 4 && doable >= 3 && lvl < LEVELS.length };
 }
 
 export function maybeLevelUp(state, today = dayKey()) {
@@ -243,10 +245,11 @@ export function weekReport(state, today = dayKey()) {
 
 // ---------- Pump learning ----------
 // Try each finisher twice, then favour the one with the best average pump rating.
-export function chooseFinisher(state, trialId) {
+export function chooseFinisher(state, trialId, today = dayKey()) {
   const t = TRIALS[trialId]; if (!t) return null;
+  const open = t.finishers.filter((f) => !f.well || wellRun(state, today) >= 3);
   const rated = (id) => state.sessions.filter((s) => s.trialId === trialId && s.finisherId === id && s.pump);
-  const info = t.finishers.map((f) => { const r = rated(f.id); return { id: f.id, n: r.length, avg: r.length ? r.reduce((a, s) => a + s.pump, 0) / r.length : 0 }; });
+  const info = open.map((f) => { const r = rated(f.id); return { id: f.id, n: r.length, avg: r.length ? r.reduce((a, s) => a + s.pump, 0) / r.length : 0 }; });
   const untried = info.filter((f) => f.n < 2).sort((a, b) => a.n - b.n)[0];
   if (untried) return untried.id;
   return info.sort((a, b) => b.avg - a.avg)[0].id;
@@ -363,4 +366,45 @@ export function dayTable(state, today = dayKey(), span = 28) {
     rows.push(JSON.parse(JSON.stringify(row)));
   }
   return rows;
+}
+
+// ---------- Habits that feed the rune powers ----------
+export const weekStart = (k) => addDays(k, -((parseDay(k).getDay() + 6) % 7)); // Monday
+
+// Days in a row the water goal was met, counting back from today (or yesterday if today isn't there yet).
+export function wellRun(state, today = dayKey()) {
+  const met = (k) => (state.days[k]?.water || 0) >= state.profile.waterTarget;
+  let k = met(today) ? today : addDays(today, -1), n = 0;
+  while (met(k)) { n += 1; k = addDays(k, -1); }
+  return n;
+}
+
+export function proteinHitsInWeek(state, monday) {
+  let n = 0;
+  for (let i = 0; i < 7; i++) if (proteinOf(state.days[addDays(monday, i)]) >= state.profile.proteinTarget) n += 1;
+  return n;
+}
+
+// Five protein days last week arm the Salmon: the first full strength trial this week counts double.
+export function salmonReady(state, today = dayKey()) {
+  const mon = weekStart(today);
+  if (proteinHitsInWeek(state, addDays(mon, -7)) < 5) return false;
+  return !state.sessions.some((s) => s.double && s.date >= mon);
+}
+
+// Today's plan, allowing for a re-roll.
+export function planForDay(state, k = dayKey()) { return state.days[k]?.planOverride || planFor(k); }
+
+export function mindTotal(state) { return Object.values(state.days).reduce((a, d) => a + (d.mind || 0), 0); }
+export function rerollCharges(state) { return Math.max(0, Math.floor(mindTotal(state) / 10) - (state.rerolls || []).length); }
+
+// Spend a Stillness charge to swap today's strength trial for the one done least recently.
+export function reroll(state, today = dayKey()) {
+  const plan = planForDay(state, today);
+  if (!TRIALS[plan] || rerollCharges(state) < 1) return null;
+  const last = (id) => state.sessions.filter((s) => s.trialId === id).map((s) => s.date).sort().pop() || '';
+  const next = Object.keys(TRIALS).filter((id) => id !== plan).sort((a, b) => last(a).localeCompare(last(b)))[0];
+  day(state, today).planOverride = next;
+  (state.rerolls ||= []).push(today);
+  return next;
 }

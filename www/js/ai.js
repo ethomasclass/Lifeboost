@@ -1,6 +1,6 @@
 // Talks to Claude with the key the user saved on this device. The key never leaves the phone
 // except in requests to api.anthropic.com, and is never written into the repository.
-import { weekReport, streak, levelProgress, proteinOf, dayKey, planFor, doseOffset, isLowDoseDay, readiness, dayTable, healthFlag } from './logic.js';
+import { weekReport, streak, levelProgress, proteinOf, dayKey, planForDay, doseOffset, isLowDoseDay, readiness, dayTable, healthFlag } from './logic.js';
 import { LEVELS, TRIALS } from './data.js';
 
 const URL = 'https://api.anthropic.com/v1/messages';
@@ -30,7 +30,7 @@ export async function ask(state, { system, messages, max = 700 }) {
 }
 
 export function context(state) {
-  const today = dayKey(), d = state.days[today] || {}, lv = LEVELS[state.profile.level - 1], plan = planFor(today);
+  const today = dayKey(), d = state.days[today] || {}, lv = LEVELS[state.profile.level - 1], plan = planForDay(state, today);
   return {
     name: state.profile.name, today, level: lv.n, sessionMinutesAtLevel: lv.minutes,
     todaysPlan: plan === 'rest' ? 'rest day' : plan === 'walk' ? 'treadmill walk' : TRIALS[plan].short,

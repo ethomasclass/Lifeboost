@@ -338,3 +338,13 @@ label { color: var(--mist); font-size: 15px; }
 .btn.quiet { background: none; }
 #ringArc { stroke-width: 3; filter: none; }
 .ring svg circle { stroke-width: 3; }
+
+/* ---------- the hero ---------- */
+.hero { display: block; height: auto; max-width: 100%; flex: none; overflow: visible; }
+.herocloak { transform-origin: 100px 80px; animation: sway 5s ease-in-out infinite; }
+@keyframes sway { 50% { transform: skewX(-1.600deg); } }
+.runerow { display: flex; gap: 2px; margin-top: 4px; }
+.runerow .stone { width: 20%; max-width: 40px; }
+.runelist li { align-items: flex-start; }
+.pick .btn.sm { padding-left: 2px; padding-right: 2px; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .herocloak { animation: none; } }

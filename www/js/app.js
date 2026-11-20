@@ -4,6 +4,8 @@ import { mountFigure } from './figure.js';
 import { syncNotifications, isNative, buzz, beep, keepAwake, say, hush, canSpeak, playHorn, shareBackup } from './native.js';
 import { coach, estimateMeal, bardTale, briefing, bandRead, bandPatterns } from './ai.js';
 import { allPhotos, addPhoto, removePhoto } from './photos.js';
+import * as H from './hero.js';
+import { heroSVG } from './heroart.js';
 import { GLOW, ROCK, rankStone, heroStone, numberStone, iconStone, tabStone, notchStone, slabURI, plateURI, runeStone, oghamGlyph, iconGlyph } from './stones.js';
 
 const KEY = 'fianna.v1';
@@ -13,7 +15,7 @@ function load() {
 }
 let S = load();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { toast("Couldn't save. Storage may be full."); } };
-const ui = { tab: 'today', sheet: null, player: null, breath: null, med: null, move: null, busy: false, mealNote: '', mealDraft: null, tale: '', backup: '', front: false, photos: [], brief: '' };
+const ui = { tab: 'today', sheet: null, player: null, breath: null, med: null, move: null, busy: false, mealNote: '', mealDraft: null, tale: '', backup: '', front: false, photos: [], brief: '', heroPreview: null };
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const today = () => L.dayKey();
@@ -68,13 +70,13 @@ const proverb = () => { const p = PROVERBS[L.parseDay(today()).getDate() % PROVE
 
 // ---------- Today ----------
 function todayPlan() {
-  const k = today(), d = S.days[k] || {}, plan = L.planFor(k);
+  const k = today(), d = S.days[k] || {}, plan = L.planForDay(S, k);
   const comeback = L.needsComeback(S, k);
   const lowDay = L.isLowDoseDay(S, k) && d.energy == null;
   const base = L.modeToday(S, k), ready = L.readiness(S, k);
   const mode = (comeback || lowDay) && base === 'full' ? 'light' : base;
   const done = S.sessions.some((s) => s.date === k && (plan === 'rest' || s.trialId === plan));
-  return { k, d, plan, mode, comeback, done, lowDay, ready, boss: plan !== 'rest' ? L.bossFor(S, plan, mode) : null };
+  return { k, d, plan, mode, comeback, done, lowDay, ready, rerolled: !!d.planOverride, boss: plan !== 'rest' ? L.bossFor(S, plan, mode) : null };
 }
 const modeWords = { full: 'Full trial', light: 'Lighter trial', min: 'Five-minute trial' };
 
@@ -85,7 +87,7 @@ function backupDue() {
 }
 
 function viewToday() {
-  const { d, plan, mode, comeback, done, lowDay, boss, ready } = todayPlan();
+  const { d, plan, mode, comeback, done, lowDay, boss, ready, rerolled } = todayPlan();
   const hour = new Date().getHours(), greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const st = L.streak(S), prog = L.levelProgress(S), protein = L.proteinOf(d);
   let info, acts;
@@ -95,14 +97,14 @@ function viewToday() {
   } else {
     const sess = L.buildSession(plan, S.profile.level, mode, { boss });
     const name = plan === 'walk' ? 'Treadmill walk' : TRIALS[plan].short;
-    info = `<p class="tag">${boss ? 'Boss trial · earn your next rank' : "Today's trial"}</p><h3 class="herotitle">${boss ? `${boss}` : name}</h3>${boss ? `<p class="dim" style="margin:0">${name}</p>` : ''}<p class="dim">${L.sessionMinutes(sess)} min · ${modeWords[mode].toLowerCase()}${d.energy ? ` · energy ${d.energy} of 5` : ''}</p>`;
+    info = `<p class="tag">${boss ? 'Boss trial · earn your next rank' : rerolled ? 'Re-rolled by the Rune of Stillness' : "Today's trial"}</p><h3 class="herotitle">${boss ? `${boss}` : name}</h3>${boss ? `<p class="dim" style="margin:0">${name}</p>` : ''}<p class="dim">${L.sessionMinutes(sess)} min · ${modeWords[mode].toLowerCase()}${d.energy ? ` · energy ${d.energy} of 5` : ''}</p>`;
     acts = (done ? `<p class="moss" style="font-weight:700;margin:6px 0 0;text-align:center">Trial complete. Well fought.</p>` : `<button class="btn go" data-act="start" data-trial="${plan}" data-mode="${mode}">Begin trial</button>`) +
-      `<div class="row between" style="margin-top:6px"><button class="btn quiet sm" data-act="tab" data-tab="train">Choose another</button>${!done && mode !== 'min' ? `<button class="btn quiet sm" data-act="start" data-trial="${plan}" data-mode="min">Just 5 minutes</button>` : ''}</div>`;
+      `<div class="row between" style="margin-top:6px"><button class="btn quiet sm" data-act="tab" data-tab="train">Choose another</button>${!done && TRIALS[plan] && L.rerollCharges(S) > 0 ? `<button class="btn quiet sm" data-act="reroll">Re-roll</button>` : ''}${!done && mode !== 'min' ? `<button class="btn quiet sm" data-act="start" data-trial="${plan}" data-mode="min">Just 5 minutes</button>` : ''}</div>`;
   }
   const water = d.water || 0;
   const stat = (svg, big, label, attrs = '') => `<button class="statstone" ${attrs}>${svg}<span class="statlabel"><b>${big}</b>${label}</span></button>`;
   const stats = `<div class="statrow">
-    ${stat(numberStone(st.current, ROCK.ember, GLOW.ember, 20), st.current === 1 ? 'day streak' : 'day streak', st.shields ? `${st.shields} ${st.shields === 1 ? 'shield' : 'shields'} banked` : 'shield every 7 days', 'data-act="tab" data-tab="progress"')}
+    ${stat(numberStone(st.current, ROCK.ember, GLOW.ember, 20), st.current === 1 ? 'day streak' : 'day streak', st.shields ? `${st.shields} ember ${st.shields === 1 ? 'charge' : 'charges'}` : 'ember charge every 7', 'data-act="tab" data-tab="progress"')}
     ${stat(numberStone(protein, ROCK.green, GLOW.gold, 21), `of ${S.profile.proteinTarget} g`, 'protein', 'data-act="tab" data-tab="fuel"')}
     ${stat(numberStone(water, ROCK.blue, GLOW.cyan, 22), `of ${S.profile.waterTarget} oz`, 'tap to add 8 oz', 'data-act="water" data-v="8" aria-label="Add 8 ounces of water"')}</div>`;
   const top = S.profile.level >= LEVELS.length;
@@ -114,13 +116,14 @@ function viewToday() {
   ${comeback ? `<div class="note">Welcome back. Today is a lighter comeback session, then you pick up where you left off. Nothing was lost.</div>` : ''}
   ${healthCard(ready, d)}
   ${lowDay ? `<div class="note">This is usually a low-energy day after your dose, so today starts as a lighter trial. Log your energy if you feel better than that.</div>` : ''}
-  ${st.shielded ? `<div class="note">A streak shield is holding your ${st.current}-day streak. Any session today keeps it.</div>` : ''}
+  ${st.shielded ? `<div class="note">The Rune of Embers is holding your ${st.current}-day streak. Any session today keeps it.</div>` : ''}
   ${backupDue() ? `<div class="note">It has been over a week since your last backup. <button class="btn sm" data-act="savebackup" style="margin-top:6px">Save a backup now</button></div>` : ''}
   ${L.lowIntake(S) ? `<div class="note">You logged very little protein two days running. On a GLP-1 that costs muscle. Try a shake or a small protein snack early today.</div>` : ''}
   ${d.energy ? '' : `<div class="cloth"><h3>How is your energy this morning?</h3><p class="small">Your trial adjusts to it. Low energy gets a shorter session, never a skipped one.</p><div class="pick">${[1, 2, 3, 4, 5].map((n) => `<button class="btn" data-act="energy" data-v="${n}" aria-label="Energy ${n} of 5">${n}</button>`).join('')}</div><div class="row between small" style="margin-top:4px"><span>Drained</span><span>Strong</span></div></div>`}
   <div class="slab"><div class="herorow">${heroStone(108, true)}<div class="grow">${info}</div></div>${acts}</div>
   ${stats}
   ${stoneCard}
+  ${heroCard()}
   ${ui.brief ? `<div class="cloth"><h3>Morning briefing</h3><p style="margin:0">${esc(ui.brief)}</p></div>` : ''}
   <div class="grid2"><button class="btn" data-act="brief" ${ui.busy === 'brief' ? 'disabled' : ''}>${ui.busy === 'brief' ? 'Preparing…' : 'Morning briefing'}</button><button class="btn" data-act="sheet" data-sheet="coach">Ask your coach</button></div>
   ${S.settings.dev ? '<button class="btn sm" style="width:100%;margin-bottom:12px" data-act="sheet" data-sheet="dev">Developer: simulate health data</button>' : ''}
@@ -141,6 +144,31 @@ function patternCard() {
   const r = ui.patterns;
   return `<h2>Patterns in your band data</h2><div class="cloth">${r ? (r.findings.length ? `<ul class="list">${r.findings.map((f) => `<li><span class="grow">${esc(f.pattern)}<br><span class="bronze">Try: ${esc(f.try)}</span></span></li>`).join('')}</ul>` : '<p class="dim">No clear pattern yet.</p>') + (r.note ? `<p class="small" style="margin-top:8px">${esc(r.note)}</p>` : '') + `<p class="small">${MED_NOTE}</p>` : '<p class="small">Your coach compares four weeks of sleep, heart rate and steps with your energy, protein and pump ratings, and reports what actually moves together.</p>'}
   <button class="btn" data-act="patterns" ${ui.busy === 'patterns' ? 'disabled' : ''}>${ui.busy === 'patterns' ? 'Looking for patterns…' : r ? 'Look again' : 'Find my patterns'}</button></div>`;
+}
+const look = () => (ui.heroPreview != null ? H.previewLook(ui.heroPreview) : H.heroLook(S));
+const runeStoneSvg = (r, size = 40) => iconStone(r.icon, ROCK[r.rock], GLOW[r.glow], 30 + r.id.length, size, r.lit);
+function heroCard() {
+  const nx = H.nextUpgrade(S), rs = H.runes(S);
+  return `<div class="slab plain"><div class="herorow" style="align-items:flex-start;margin:0">${heroSVG(look(), 116)}<div class="grow">
+    <div class="row between"><h3>Your warrior</h3>${ui.heroPreview != null ? '<span class="small">preview</span>' : ''}</div>
+    ${nx ? `<p class="small" style="margin:4px 0 0">Next: ${nx.nextName.toLowerCase()}</p>${meter(nx.xp - H.TIER_AT[nx.tier], nx.next - H.TIER_AT[nx.tier])}<p class="small">Built by ${nx.part} work</p>` : '<p class="small">Every piece is gold-inlaid. A warrior of legend.</p>'}
+    <div class="runerow">${rs.map((r) => runeStoneSvg(r, 34)).join('')}</div>
+    <button class="btn sm" style="width:100%;margin-top:6px" data-act="sheet" data-sheet="hero">Open the armory</button></div></div></div>`;
+}
+function sheetHero() {
+  const ar = H.armor(S), rs = H.runes(S), lk = look(), real = H.heroLook(S), rel = H.relics(S);
+  const piece = (a) => `<li><span class="grow"><b>${a.tierName}</b><br><span class="small">${a.name} · built by ${a.part} work${a.next ? ` · ${a.xp} of ${a.next} to ${a.nextName.toLowerCase()}` : ' · finest tier'}</span>${a.next ? meter(a.xp - H.TIER_AT[a.tier], a.next - H.TIER_AT[a.tier]) : ''}</span></li>`;
+  const rune = (r) => `<li>${runeStoneSvg(r, 52)}<span class="grow"><b>${r.name}</b>${r.charges ? ` <span class="bronze">· ${r.charges} ${r.charges === 1 ? 'charge' : 'charges'}</span>` : r.lit ? ' <span class="bronze">· lit</span>' : ''}<br><span class="dim" style="font-size:15px">${r.effect}</span><br><span class="small">${r.habit} ${r.progress}.</span></span></li>`;
+  return `<div><div class="row between"><h1>The armory</h1>${closeBtn()}</div>
+  <div style="display:grid;justify-items:center;margin:6px 0 2px">${heroSVG(lk, 230)}</div>
+  ${ui.heroPreview != null ? `<p class="small" style="text-align:center">Previewing every piece at tier ${ui.heroPreview}. <button class="btn quiet sm" data-act="heropreview" data-v="">Show my real gear</button></p>` : `<p class="sub" style="text-align:center;margin-bottom:8px">Trial ${lv().n} · ${lv().rank}, the ${lv().tree.toLowerCase()}</p>`}
+  <h2>Armor</h2><div class="cloth"><p class="small">Each piece is forged by training the muscles under it. Reps build it, and adding weight builds it faster.</p><ul class="list">${ar.map(piece).join('')}</ul></div>
+  <h2>Weapons</h2><div class="cloth"><ul class="list">
+    <li><span class="grow"><b>${H.SPEARS[real.spear - 1]}</b><br><span class="small">${real.spear < 5 ? `Reforged each time you rise a rank. Next: ${H.SPEARS[real.spear].toLowerCase()} at Trial ${real.spear + 1}.` : 'The finest spear in the warband.'}</span></span></li>
+    <li><span class="grow"><b>${H.SHIELDS[real.shield]}</b><br><span class="small">${real.bosses ? `${real.bosses} boss ${real.bosses === 1 ? 'mark' : 'marks'}. ` : ''}${real.shield < 4 ? 'Each boss trial you beat improves it and adds a stud.' : 'Fully bound and marked.'}</span></span></li>
+    <li><span class="grow"><b>${H.TORCS[real.torc]}</b><br><span class="small">${S.sessions.length} sessions finished. ${real.torc < 3 ? `Next torc at ${[5, 25, 100][real.torc]}.` : 'The gold torc of a veteran.'}</span></span></li></ul></div>
+  <h2>Rune powers</h2><div class="cloth"><ul class="list runelist">${rs.map(rune).join('')}</ul></div>
+  <h2>Relics</h2><div class="cloth"><div class="torcs">${rel.map((r, i) => `<div class="torc ${r.have ? '' : 'locked'}">${iconStone(r.icon, ROCK[r.rock], GLOW[r.glow], 70 + i, 64, r.have)}<b>${r.name}</b>${r.how}</div>`).join('')}</div></div></div>`;
 }
 function healthCard(ready, d) {
   const h = S.health?.[today()]; if (!h) return '';
@@ -320,8 +348,11 @@ function sheetPlayer() {
   }
   if (P.phase === 'done') {
     const r = P.result, prog = L.levelProgress(S);
-    return `<div style="position:relative">${r.leveled || r.badges.length ? embers() : ''}<div class="spacer"></div><div style="text-align:center;position:relative">${r.leveled ? `<div class="bigstone award">${stoneSVG(0, 4, S.profile.level, true)}</div><h1 style="margin-top:12px">You rise to Trial ${S.profile.level}</h1><p class="sub">${lv().rank}, the ${lv().tree.toLowerCase()}: ${lv().meaning}.</p><p class="dim" style="margin-top:8px">The ${S.profile.level} ${S.profile.level === 1 ? 'stroke' : 'strokes'} on your stone spell ${lv().rank} in Ogham. Your sessions are now ${lv().minutes} minutes.</p>` : `<div class="row" style="justify-content:center;gap:4px">${Array.from({ length: prog.need }, (_, i) => notchStone(r.counted && i < prog.count, 60 + i, 46)).join('')}</div><h1 style="margin-top:8px">${r.counted ? 'A notch is carved' : 'You showed up'}</h1><p class="dim">${r.counted ? `${prog.count} of ${prog.need} toward Trial ${Math.min(S.profile.level + 1, LEVELS.length)}.` : 'The five-minute trial keeps your streak alive. That is how warriors are made.'}</p>`}
+    return `<div style="position:relative">${r.leveled || r.badges.length || r.forged.length ? embers() : ''}<div class="spacer"></div><div style="text-align:center;position:relative">${r.leveled ? `<div class="bigstone award">${stoneSVG(0, 4, S.profile.level, true)}</div><h1 style="margin-top:12px">You rise to Trial ${S.profile.level}</h1><p class="sub">${lv().rank}, the ${lv().tree.toLowerCase()}: ${lv().meaning}.</p><p class="dim" style="margin-top:8px">The ${S.profile.level} ${S.profile.level === 1 ? 'stroke' : 'strokes'} on your stone spell ${lv().rank} in Ogham. Your sessions are now ${lv().minutes} minutes.</p>` : `<div class="row" style="justify-content:center;gap:4px">${Array.from({ length: prog.need }, (_, i) => notchStone(r.counted && i < prog.count, 60 + i, 46)).join('')}</div><h1 style="margin-top:8px">${r.counted ? 'A notch is carved' : 'You showed up'}</h1><p class="dim">${r.counted ? `${prog.count} of ${prog.need} toward Trial ${Math.min(S.profile.level + 1, LEVELS.length)}.` : 'The five-minute trial keeps your streak alive. That is how warriors are made.'}</p>`}
     ${r.badges.map((x, i) => `<div class="cloth award" style="margin-top:12px;--d:${0.5 + i * 0.25}s"><div class="row" style="justify-content:center">${badgeStone(x, 60)}<div style="text-align:left"><p class="small">New rune stone</p><h3>${x.name}</h3></div></div></div>`).join('')}
+    ${r.double ? '<div class="note" style="margin-top:12px;text-align:left">Rune of the Salmon: this trial counted double toward your rank.</div>' : ''}
+    ${r.forged.length ? `<div class="cloth award" style="margin-top:12px;--d:.4s"><div class="row">${heroSVG(H.heroLook(S), 84)}<div style="text-align:left"><p class="small">Forged in the armory</p>${r.forged.map((f) => `<h3>${f.name}</h3>`).join('')}</div></div></div>` : ''}
+    ${r.lit.map((x, i) => `<div class="cloth award" style="margin-top:12px;--d:${0.6 + i * 0.2}s"><div class="row" style="justify-content:center">${runeStoneSvg(x, 52)}<div style="text-align:left"><p class="small">Rune power</p><h3>${x.name}${x.charges ? ` · ${x.charges}` : ''}</h3></div></div></div>`).join('')}
     ${r.rewards.map((x) => `<div class="note" style="margin-top:12px;text-align:left">Reward earned: ${esc(x.text)}</div>`).join('')}</div>
     <div class="spacer"></div><button class="btn go" data-act="close">Done</button></div>`;
   }
@@ -354,10 +385,11 @@ function sheetDev() {
   <button class="btn go" style="margin-top:14px">Save this day</button></form>
   <h2>Quick scenarios for today</h2><div class="row wrap"><button class="btn sm" data-act="devpreset" data-p="great">Great night</button><button class="btn sm" data-act="devpreset" data-p="ok">Average night</button><button class="btn sm" data-act="devpreset" data-p="rough">Rough night</button></div>
   <h2>History</h2><p class="small">${n} simulated ${n === 1 ? 'day' : 'days'} stored. Heart rate and HRV are judged against your own last two weeks, so they need history to mean anything.</p><div class="row wrap"><button class="btn sm" data-act="devseed">Add two ordinary weeks</button><button class="btn sm" data-act="devclear">Clear simulated data</button></div>
+  <h2>Preview hero gear</h2><p class="small">See your warrior with every piece at one tier. This changes nothing you have earned.</p><div class="pick">${[0, 1, 2, 3, 4].map((t) => `<button class="btn sm ${ui.heroPreview === t ? 'on' : ''}" data-act="heropreview" data-v="${t}">${['Cloth', 'Leather', 'Bronze', 'Iron', 'Gold'][t]}</button>`).join('')}</div><div class="row wrap" style="margin-top:8px"><button class="btn sm" data-act="sheet" data-sheet="hero">Open the armory</button><button class="btn sm quiet" data-act="heropreview" data-v="">Stop preview</button></div>
   <p class="small" style="margin-top:14px">Your energy check-in always overrides the band. Clear today's energy on the Mind tab to see the band decide.</p><button class="btn sm" data-act="devenergy">Clear today's energy check-in</button></div>`;
 }
 
-const SHEETS = { dev: sheetDev, setup: sheetSetup, settings: sheetSettings, move: sheetMove, coach: sheetCoach, breath: sheetBreath, med: sheetMed, player: sheetPlayer };
+const SHEETS = { hero: sheetHero, dev: sheetDev, setup: sheetSetup, settings: sheetSettings, move: sheetMove, coach: sheetCoach, breath: sheetBreath, med: sheetMed, player: sheetPlayer };
 const VIEWS = { today: viewToday, train: viewTrain, fuel: viewFuel, mind: viewMind, progress: viewProgress };
 const TABS = [['today', 'Today', '<path d="M4 11l8-7 8 7v9H4z"/>'], ['train', 'Train', '<path d="M3 9v6M7 6v12M17 6v12M21 9v6M7 12h10"/>'], ['fuel', 'Fuel', '<path d="M12 3c3 4 5 6.5 5 10a5 5 0 01-10 0c0-3.500 2-6 5-10z"/>'], ['mind', 'Mind', '<circle cx="12" cy="12" r="8"/><path d="M12 12c0-3 3-4 4-2s-1 4-3 3"/>'], ['progress', 'Progress', '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>']];
 
@@ -401,11 +433,13 @@ function start(trialId, mode) {
 }
 function finishSession() {
   const P = ui.player, k = today(), strength = P.session.trialId !== 'walk';
-  const before = S.profile.level;
-  S.sessions.push({ id: Date.now(), date: k, trialId: P.session.trialId, level: P.session.level, mode: P.session.mode, finisherId: P.session.finisherId || null, boss: P.session.boss || null, sets: P.sets, felt: P.felt, pump: strength ? P.pump : null, minutes: Math.max(1, Math.round((Date.now() - P.started) / 60000)) });
+  const before = S.profile.level, lookBefore = H.heroLook(S, k), runesBefore = H.runes(S, k);
+  const double = strength && P.session.mode !== 'min' && L.salmonReady(S, k);
+  S.sessions.push({ id: Date.now(), date: k, hour: new Date(P.started).getHours(), double, trialId: P.session.trialId, level: P.session.level, mode: P.session.mode, finisherId: P.session.finisherId || null, boss: P.session.boss || null, sets: P.sets, felt: P.felt, pump: strength ? P.pump : null, minutes: Math.max(1, Math.round((Date.now() - P.started) / 60000)) });
   const leveled = L.maybeLevelUp(S, k), badges = L.awardBadges(S, k);
   const rewards = leveled ? S.rewards.filter((w) => w.level > before && w.level <= S.profile.level) : [];
-  P.result = { leveled, badges, rewards, counted: strength && P.session.mode !== 'min' };
+  const runesNow = H.runes(S, k);
+  P.result = { leveled, badges, rewards, counted: strength && P.session.mode !== 'min', double, forged: H.forged(lookBefore, H.heroLook(S, k)), lit: runesNow.filter((r, i) => (r.lit && !runesBefore[i].lit) || (r.charges || 0) > (runesBefore[i].charges || 0)) };
   P.phase = 'done'; save(); buzz(400); render();
 }
 
@@ -482,6 +516,8 @@ const ACT = {
   },
   bandread: async () => { ui.busy = 'band'; render(); try { L.day(S, today()).bandRead = await bandRead(S); save(); } catch (e) { toast(e.message); } ui.busy = false; render(); },
   patterns: async () => { ui.busy = 'patterns'; render(); try { ui.patterns = await bandPatterns(S); } catch (e) { toast(e.message); } ui.busy = false; render(); },
+  reroll: () => { const next = L.reroll(S); if (next) { save(); render(); toast(`Re-rolled to ${TRIALS[next].short.toLowerCase()}.`); } },
+  heropreview: (d) => { ui.heroPreview = d.v === '' ? null : Number(d.v); render(); },
   devpreset: (d) => { const v = { great: { sleep: 8.2, steps: 9400, rhr: 58, hrv: 58 }, ok: { sleep: 6.8, steps: 6200, rhr: 63, hrv: 48 }, rough: { sleep: 4.6, steps: 2100, rhr: 72, hrv: 31 } }[d.p]; ui.devDay = today(); L.setHealth(S, today(), v); if (S.days[today()]) delete S.days[today()].bandRead; save(); render(); toast('Simulated night saved for today.'); },
   devseed: () => { L.seedHealthBaseline(S); save(); render(); toast('Two ordinary weeks added.'); },
   devclear: () => { L.clearSimHealth(S); save(); render(); toast('Simulated data cleared.'); },

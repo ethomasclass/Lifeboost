@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import * as L from '../www/js/logic.js';
 import { TRIALS, EX } from '../www/js/data.js';
 import { ANIMS } from '../www/js/figure.js';
+import * as H from '../www/js/hero.js';
 
 const sess = (date, over = {}) => ({ date, trialId: 'chest_back', level: 1, mode: 'full', felt: 'doable', sets: {}, minutes: 10, ...over });
 
@@ -161,5 +162,74 @@ const tbl = L.dayTable(s, '2026-11-20');
 const lastRow = tbl[tbl.length - 1];
 assert.equal(lastRow.restingHr, 78); assert.equal(lastRow.proteinG, 40); assert.equal(lastRow.pump, 2); assert.equal(lastRow.energy, 2);
 assert.ok(L.weekReport(s, '2026-11-20').bandSleepAvg > 0);
+
+// ---------- hero ----------
+// every move that can be logged or used in a finisher feeds some gear
+for (const id of Object.keys(EX)) if (id !== 'walk') assert.ok(H.CREDIT[id], `no gear credit for ${id}`);
+s = L.newState();
+assert.ok(H.armor(s).every((a) => a.tier === 0), 'a new warrior starts in cloth');
+assert.equal(H.heroLook(s, '2026-11-20').spear, 1); assert.equal(H.heroLook(s, '2026-11-20').shield, 0);
+// one chest and back session: 36 press reps + finisher a (push-up 15, squeeze press 15)
+s.sessions = [sess('2026-11-02', { finisherId: 'a', sets: { incline_press: [{ w: 20, r: 12 }, { w: 20, r: 12 }, { w: 20, r: 12 }], row: [{ w: 25, r: 12 }, { w: 25, r: 12 }, { w: 25, r: 12 }] } })];
+let xp = H.armorXP(s);
+assert.equal(xp.breastplate, 36 + 30); assert.equal(xp.cloak, 36); assert.equal(xp.pauldrons, 11); assert.equal(xp.bracers, Math.round(36 * 0.3 + 36 * 0.4 + 15 * 0.3)); assert.equal(xp.greaves, 0);
+// a second session with more weight earns the 40-point bonus and tips the chest into leather
+const lookBefore = H.heroLook(s, '2026-11-04');
+s.sessions.push(sess('2026-11-04', { finisherId: null, sets: { incline_press: [{ w: 25, r: 10 }] } }));
+xp = H.armorXP(s);
+assert.equal(xp.breastplate, 66 + 10 + 40);
+assert.equal(H.tierOf(xp.breastplate), 1);
+assert.deepEqual(H.forged(lookBefore, H.heroLook(s, '2026-11-04')).map((f) => f.name), ['Leather jerkin']);
+assert.equal(H.nextUpgrade(s).id, 'cloak', 'closest piece to its next tier');
+// holds count a third, walks build greaves
+s = L.newState(); s.sessions = [sess('2026-11-02', { finisherId: null, sets: { plank: [{ w: 0, r: 30 }, { w: 0, r: 30 }] } }), sess('2026-11-03', { trialId: 'walk', finisherId: null, sets: {} })];
+assert.equal(H.armorXP(s).belt, 20); assert.equal(H.armorXP(s).greaves, 10);
+assert.deepEqual([0, 79, 80, 400, 1200, 3000, 9999].map(H.tierOf), [0, 0, 1, 2, 3, 4, 4]);
+
+// Rune of the Salmon: 5 protein days last week arm one double-count trial this week
+s = L.newState(); s.profile.proteinTarget = 100;
+for (const d of ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']) s.days[d] = { food: [{ protein: 110 }], water: 0, mind: 0 };
+assert.equal(L.weekStart('2026-11-20'), '2026-11-16'); assert.equal(L.weekStart('2026-11-16'), '2026-11-16'); assert.equal(L.weekStart('2026-11-22'), '2026-11-16');
+assert.equal(L.salmonReady(s, '2026-11-18'), true);
+assert.equal(L.salmonReady(s, '2026-11-25'), false, 'only the week right after');
+s.sessions = [sess('2026-11-16', { double: true }), sess('2026-11-17')];
+assert.equal(L.salmonReady(s, '2026-11-18'), false, 'spent for this week');
+assert.equal(L.levelProgress(s).count, 3, 'a double trial counts twice');
+s.sessions.push(sess('2026-11-18'));
+assert.equal(L.levelProgress(s).ready, true);
+
+// Rune of the Well: three full days unlock the third finisher
+s = L.newState(); s.profile.waterTarget = 80;
+for (const d of ['2026-11-17', '2026-11-18', '2026-11-19']) s.days[d] = { food: [], water: 80, mind: 0 };
+assert.equal(L.wellRun(s, '2026-11-20'), 3, 'today not yet met, so the run counts back from yesterday');
+s.days['2026-11-20'] = { food: [], water: 96, mind: 0 };
+assert.equal(L.wellRun(s, '2026-11-20'), 4);
+s.sessions = ['a', 'a', 'b', 'b'].map((f, i) => sess(`2026-11-1${i}`, { finisherId: f, pump: 3 }));
+assert.equal(L.chooseFinisher(s, 'chest_back', '2026-11-20'), 'c', 'the Well opens the third finisher');
+assert.notEqual(L.chooseFinisher(s, 'chest_back', '2026-12-20'), 'c', 'and it closes again when the run ends');
+assert.equal(L.buildSession('chest_back', 1, 'full', { finisher: 'c' }).finisherId, 'c');
+
+// Rune of Stillness: 10 mind sessions earn one re-roll
+s = L.newState(); s.days['2026-11-19'] = { food: [], water: 0, mind: 10 };
+assert.equal(L.rerollCharges(s), 1);
+assert.equal(L.planForDay(s, '2026-11-20'), 'chest_shoulders');
+s.sessions = [sess('2026-11-16', { trialId: 'chest_back' })];
+assert.equal(L.reroll(s, '2026-11-20'), 'legs_core', 'swaps to the trial done least recently');
+assert.equal(L.planForDay(s, '2026-11-20'), 'legs_core'); assert.equal(L.rerollCharges(s), 0);
+assert.equal(L.reroll(s, '2026-11-20'), null, 'no charge left');
+assert.equal(L.reroll(L.newState(), '2026-11-21'), null, 'nothing to re-roll on a rest day');
+
+// Rune of the Dawn, embers, gear and relics
+s = L.newState(); s.sessions = ['2026-11-16', '2026-11-18', '2026-11-20'].map((d) => sess(d, { hour: 5 }));
+assert.equal(H.dawnDays(s, '2026-11-20'), 3); assert.equal(H.heroLook(s, '2026-11-20').dawn, true);
+assert.equal(H.dawnDays(s, '2026-11-25'), 1);
+const rn = Object.fromEntries(H.runes(s, '2026-11-20').map((r) => [r.id, r]));
+assert.equal(rn.dawn.lit, true); assert.equal(rn.embers.lit, false); assert.equal(rn.well.lit, false); assert.equal(rn.salmon.lit, false); assert.equal(rn.stillness.lit, false);
+s.sessions.push(sess('2026-11-21', { boss: 'The Salmon Leap', sets: { curl: [{ w: 10, r: 10 }] } }), sess('2026-11-23', { sets: { curl: [{ w: 20, r: 8 }] } }));
+assert.equal(H.heroLook(s, '2026-11-23').shield, 1); assert.equal(H.heroLook(s, '2026-11-23').torc, 1);
+const rl = Object.fromEntries(H.relics(s, '2026-11-23').map((r) => [r.id, r.have]));
+assert.deepEqual(rl, { boss: true, double: true, thirty: false, dawn: false });
+s.profile.level = 3;
+assert.deepEqual(H.forged(H.previewLook(0), H.heroLook(s, '2026-11-23')).map((f) => f.kind).sort(), ['shield', 'spear', 'torc']);
 
 console.log('all logic tests passed');
