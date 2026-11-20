@@ -236,6 +236,7 @@ export function weekReport(state, today = dayKey()) {
     sleepAvg: avg(ds.filter((d) => d.sleep).map((d) => d.sleep)),
     pumpAvg: avg(sess.filter((s) => s.pump).map((s) => s.pump)),
     mind: ds.reduce((a, d) => a + (d.mind || 0), 0),
+    bandSleepAvg: avg(keys.map((k) => state.health?.[k]?.sleep).filter(Boolean)), bandStepsAvg: avg(keys.map((k) => state.health?.[k]?.steps).filter(Boolean)), recoveryAvg: avg(keys.map((k) => readiness(state, k)?.score).filter((v) => v != null)),
     weightChange: ws.length && before ? Math.round((ws[ws.length - 1].lb - before.lb) * 10) / 10 : null,
   };
 }
@@ -336,3 +337,30 @@ export function seedHealthBaseline(state, today = dayKey()) {
   }
 }
 export function clearSimHealth(state) { for (const [k, h] of Object.entries(state.health || {})) if ((h.source || 'sim') === 'sim') delete state.health[k]; }
+
+// ---------- Band analysis support ----------
+// A plain safety check that never depends on the AI: resting heart rate at least 10 bpm
+// above the person's own baseline for three days running.
+export function healthFlag(state, k = dayKey()) {
+  for (let i = 0; i < 3; i++) {
+    const d = addDays(k, -i), h = state.health?.[d], b = baseline(state, addDays(k, -2), 'rhr');
+    if (!h?.rhr || !b || h.rhr < b + 10) return null;
+  }
+  return 'Your resting heart rate has been well above your normal for three days. That can come from illness, dehydration, poor sleep, or medication. Take it easy and check with your doctor.';
+}
+
+// One row per day joining band data with what was logged, for pattern finding.
+export function dayTable(state, today = dayKey(), span = 28) {
+  const rows = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const k = addDays(today, -i), h = state.health?.[k], d = state.days[k], ss = state.sessions.filter((x) => x.date === k);
+    if (!h && !d && !ss.length) continue;
+    const row = { date: k };
+    if (h) Object.assign(row, { sleepH: h.sleep, restingHr: h.rhr, hrv: h.hrv, steps: h.steps, recovery: readiness(state, k)?.score });
+    if (d) Object.assign(row, { energy: d.energy, mood: d.mood, proteinG: d.food?.length ? proteinOf(d) : undefined, waterOz: d.water || undefined });
+    if (ss.length) Object.assign(row, { trained: ss.map((x) => x.trialId).join('+'), felt: ss[0].felt, pump: ss.find((x) => x.pump)?.pump });
+    const off = doseOffset(state, k); if (off != null) row.daysSinceDose = off;
+    rows.push(JSON.parse(JSON.stringify(row)));
+  }
+  return rows;
+}

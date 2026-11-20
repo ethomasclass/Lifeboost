@@ -150,4 +150,16 @@ L.setHealth(solo, '2026-11-20', { sleep: '', steps: '' });
 assert.equal(solo.health['2026-11-20'], undefined, 'empty input removes the day');
 L.clearSimHealth(s); assert.equal(Object.keys(s.health).length, 0);
 
+// heart-rate safety flag and the pattern table
+s = L.newState(); L.seedHealthBaseline(s, '2026-11-20');
+for (const d of ['2026-11-18', '2026-11-19', '2026-11-20']) L.setHealth(s, d, { sleep: 6, rhr: 78, hrv: 40 });
+assert.match(L.healthFlag(s, '2026-11-20'), /doctor/);
+L.setHealth(s, '2026-11-19', { sleep: 6, rhr: 64, hrv: 40 });
+assert.equal(L.healthFlag(s, '2026-11-20'), null, 'one normal day clears the flag');
+s.days['2026-11-20'] = { energy: 2, food: [{ protein: 40 }], water: 32, mind: 0 }; s.sessions = [sess('2026-11-20', { pump: 2 })];
+const tbl = L.dayTable(s, '2026-11-20');
+const lastRow = tbl[tbl.length - 1];
+assert.equal(lastRow.restingHr, 78); assert.equal(lastRow.proteinG, 40); assert.equal(lastRow.pump, 2); assert.equal(lastRow.energy, 2);
+assert.ok(L.weekReport(s, '2026-11-20').bandSleepAvg > 0);
+
 console.log('all logic tests passed');

@@ -2,7 +2,7 @@ import { EX, LEVELS, TRIALS, BADGES, PROVERBS, MEDITATIONS } from './data.js';
 import * as L from './logic.js';
 import { mountFigure } from './figure.js';
 import { syncNotifications, isNative, buzz, beep, keepAwake, say, hush, canSpeak, playHorn, shareBackup } from './native.js';
-import { coach, estimateMeal, bardTale, briefing } from './ai.js';
+import { coach, estimateMeal, bardTale, briefing, bandRead, bandPatterns } from './ai.js';
 import { allPhotos, addPhoto, removePhoto } from './photos.js';
 
 const KEY = 'fianna.v1';
@@ -122,6 +122,21 @@ function viewToday() {
   ${proverb()}`;
 }
 
+const MED_NOTE = 'General wellness information, not medical advice. Check any supplement with your prescriber or pharmacist first, especially on a GLP-1.';
+function bandReadCard(r) {
+  if (!r) return '';
+  return `<div class="slab band"><p class="tag">Your coach's reading</p>${r.flag ? `<div class="note">${esc(r.flag)}</div>` : ''}<p>${esc(r.summary)}</p>
+  ${r.today.length ? `<h3 style="margin-top:10px">Today</h3><ul class="list">${r.today.map((t) => `<li><span class="grow"><b>${esc(t.title)}</b><br><span class="dim">${esc(t.action)}</span></span></li>`).join('')}</ul>` : ''}
+  ${r.food.length ? `<h3 style="margin-top:12px">Food that fits today</h3><ul class="list">${r.food.map((f) => `<li><span class="grow"><b>${esc(f.food)}</b><br><span class="dim">${esc(f.why)}</span></span></li>`).join('')}</ul>` : ''}
+  ${r.supplements.length ? `<h3 style="margin-top:12px">Supplements to ask about</h3><ul class="list">${r.supplements.map((x) => `<li><span class="grow"><b>${esc(x.name)}</b><br><span class="dim">${esc(x.why)}</span><br><span class="small">Ask: ${esc(x.ask)}</span></span></li>`).join('')}</ul>` : ''}
+  <p class="small" style="margin:10px 0 0">${MED_NOTE}</p></div>`;
+}
+function patternCard() {
+  if (!Object.keys(S.health || {}).length) return '';
+  const r = ui.patterns;
+  return `<h2>Patterns in your band data</h2><div class="cloth">${r ? (r.findings.length ? `<ul class="list">${r.findings.map((f) => `<li><span class="grow">${esc(f.pattern)}<br><span class="bronze">Try: ${esc(f.try)}</span></span></li>`).join('')}</ul>` : '<p class="dim">No clear pattern yet.</p>') + (r.note ? `<p class="small" style="margin-top:8px">${esc(r.note)}</p>` : '') + `<p class="small">${MED_NOTE}</p>` : '<p class="small">Your coach compares four weeks of sleep, heart rate and steps with your energy, protein and pump ratings, and reports what actually moves together.</p>'}
+  <button class="btn" data-act="patterns" ${ui.busy === 'patterns' ? 'disabled' : ''}>${ui.busy === 'patterns' ? 'Looking for patterns…' : r ? 'Look again' : 'Find my patterns'}</button></div>`;
+}
 function healthCard(ready, d) {
   const h = S.health?.[today()]; if (!h) return '';
   const tone = ready ? { ready: 'moss', steady: 'bronze', low: 'ember' }[ready.label] : '';
@@ -129,7 +144,9 @@ function healthCard(ready, d) {
   return `<div class="cloth"><div class="row between"><h3>From your band</h3>${(h.source || 'sim') === 'sim' ? '<span class="small">simulated</span>' : ''}</div>
   <div class="grid2" style="margin:8px 0 0">${ready ? `<div><p class="small">Recovery</p><p class="big ${tone}">${ready.score}<span class="small"> / 100</span></p></div>` : ''}${h.sleep ? `<div><p class="small">Sleep</p><p class="big">${h.sleep}<span class="small"> h</span></p></div>` : ''}${h.rhr ? `<div><p class="small">Resting heart rate</p><p class="big">${h.rhr}<span class="small"> bpm</span></p></div>` : ''}${h.hrv ? `<div><p class="small">HRV</p><p class="big">${h.hrv}<span class="small"> ms</span></p></div>` : ''}</div>
   ${h.steps ? `<p class="small" style="margin:10px 0 0">Steps: ${h.steps.toLocaleString()} of ${S.profile.stepsGoal.toLocaleString()}</p>${meter(h.steps, S.profile.stepsGoal)}` : ''}
-  ${words ? `<p class="small" style="margin:8px 0 0">${words}</p>` : ''}</div>`;
+  ${words ? `<p class="small" style="margin:8px 0 0">${words}</p>` : ''}
+  ${L.healthFlag(S) ? `<div class="note" style="margin:10px 0 0">${L.healthFlag(S)}</div>` : ''}
+  <button class="btn" style="width:100%;margin-top:10px" data-act="bandread" ${ui.busy === 'band' ? 'disabled' : ''}>${ui.busy === 'band' ? 'Reading your band…' : d.bandRead ? 'Read my band again' : 'Read my band'}</button></div>${bandReadCard(d.bandRead)}`;
 }
 
 // ---------- Train ----------
@@ -213,6 +230,7 @@ function viewProgress() {
   <div class="cloth"><h3>The bard's tale of your week</h3>${ui.tale ? `<p style="white-space:pre-wrap">${esc(ui.tale)}</p>` : '<p class="small">Your coach turns the week\'s numbers into a short story and one focus for next week.</p>'}<button class="btn" data-act="tale" ${ui.busy === 'tale' ? 'disabled' : ''}>${ui.busy === 'tale' ? 'The bard is composing…' : ui.tale ? 'Tell it again' : 'Hear the tale'}</button></div>
   <h2>Weigh-in</h2><div class="cloth"><form data-form="weight" class="row"><div class="grow"><label for="wlb" style="margin-top:0">Weight (lb)</label><input id="wlb" name="lb" type="number" inputmode="decimal" step="0.1" min="60" max="600" required></div><button class="btn" style="align-self:flex-end">Log</button></form>${chart(S.weights.slice(-20))}
     <p class="small" style="margin-top:8px">Weekly is enough. The scale can't tell fat from muscle, so watch your strength records too.</p></div>
+  ${patternCard()}
   ${doseCard()}
   <h2>Progress photos</h2><div class="cloth">${photoCard()}<label class="btn sm" style="margin-top:10px;color:var(--bone)">Add a photo<input type="file" accept="image/*" data-progphoto hidden></label><p class="small" style="margin-top:8px">Photos stay on this phone only. They are not included in backups.</p></div>
   <h2>Strength records</h2><div class="cloth">${recs ? `<ul class="list">${recs}</ul>` : '<p class="dim" style="margin:0">Log weights in a trial and your best lifts appear here.</p>'}</div>
@@ -456,7 +474,9 @@ const ACT = {
     } catch { /* fall through to text */ }
     ui.backup = text; ui.sheet = 'settings'; S.settings.lastBackup = today(); save(); render(); toast('Copy the backup text at the bottom of Settings.');
   },
-  devpreset: (d) => { const v = { great: { sleep: 8.2, steps: 9400, rhr: 58, hrv: 58 }, ok: { sleep: 6.8, steps: 6200, rhr: 63, hrv: 48 }, rough: { sleep: 4.6, steps: 2100, rhr: 72, hrv: 31 } }[d.p]; ui.devDay = today(); L.setHealth(S, today(), v); save(); render(); toast('Simulated night saved for today.'); },
+  bandread: async () => { ui.busy = 'band'; render(); try { L.day(S, today()).bandRead = await bandRead(S); save(); } catch (e) { toast(e.message); } ui.busy = false; render(); },
+  patterns: async () => { ui.busy = 'patterns'; render(); try { ui.patterns = await bandPatterns(S); } catch (e) { toast(e.message); } ui.busy = false; render(); },
+  devpreset: (d) => { const v = { great: { sleep: 8.2, steps: 9400, rhr: 58, hrv: 58 }, ok: { sleep: 6.8, steps: 6200, rhr: 63, hrv: 48 }, rough: { sleep: 4.6, steps: 2100, rhr: 72, hrv: 31 } }[d.p]; ui.devDay = today(); L.setHealth(S, today(), v); if (S.days[today()]) delete S.days[today()].bandRead; save(); render(); toast('Simulated night saved for today.'); },
   devseed: () => { L.seedHealthBaseline(S); save(); render(); toast('Two ordinary weeks added.'); },
   devclear: () => { L.clearSimHealth(S); save(); render(); toast('Simulated data cleared.'); },
   devenergy: () => { const d = S.days[today()]; if (d) delete d.energy; save(); render(); toast("Today's energy check-in cleared."); },
@@ -504,7 +524,7 @@ const FORMS = {
     ui.mealDraft = null; ui.mealNote = ''; const fresh = L.awardBadges(S); save(); render();
     toast(fresh.length ? `New torc: ${fresh[0].name}` : `Added ${item.protein} g protein.`);
   },
-  dev: (f) => { ui.devDay = f.day || today(); L.setHealth(S, ui.devDay, f); save(); render(); toast('Saved.'); },
+  dev: (f) => { ui.devDay = f.day || today(); L.setHealth(S, ui.devDay, f); if (S.days[ui.devDay]) delete S.days[ui.devDay].bandRead; save(); render(); toast('Saved.'); },
   journal: (f) => { L.day(S, today()).journal = { grat: f.grat.trim(), refl: f.refl.trim() }; save(); toast('Journal saved.'); },
   weight: (f) => { const lb = Number(f.lb); if (!lb) return; S.weights = S.weights.filter((w) => w.date !== today()); S.weights.push({ date: today(), lb }); S.profile.weightLb = lb; save(); render(); toast('Weigh-in logged.'); },
   reward: (f) => { S.rewards.push({ text: f.text.trim(), level: Number(f.level) }); save(); render(); },

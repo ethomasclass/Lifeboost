@@ -1,6 +1,6 @@
 // Talks to Claude with the key the user saved on this device. The key never leaves the phone
 // except in requests to api.anthropic.com, and is never written into the repository.
-import { weekReport, streak, levelProgress, proteinOf, dayKey, planFor, doseOffset, isLowDoseDay, readiness } from './logic.js';
+import { weekReport, streak, levelProgress, proteinOf, dayKey, planFor, doseOffset, isLowDoseDay, readiness, dayTable, healthFlag } from './logic.js';
 import { LEVELS, TRIALS } from './data.js';
 
 const URL = 'https://api.anthropic.com/v1/messages';
@@ -78,4 +78,40 @@ export function briefing(state) {
     system: `${COACH}\n\nWrite this morning's briefing: one paragraph of 60 to 90 words that will be read aloud. Cover, in order: how they are set up today (sleep and energy if logged, and whether this is usually a low day after their dose), what today's trial is and how long, and one specific protein move for the morning. End with a short send-off. Plain sentences only, no lists, no symbols.`,
     messages: [{ role: 'user', content: JSON.stringify(context(state)) }], max: 250,
   });
+}
+
+const BAND_RULES = `You analyse fitness-band data inside Fianna for one user: a beginner building muscle at home with dumbbells, a bench and a treadmill, who takes a GLP-1 medication, often has low appetite and low energy, and trains at 5:30 am. You are not a doctor and this is general wellness information, not medical advice.
+Hard rules:
+- Never diagnose, never interpret numbers as a medical condition, never comment on medication or dosing.
+- If the data looks worrying (resting heart rate far above their usual for days, very little sleep for many nights), set "flag" to one sentence telling them to check with their doctor, and keep the other advice gentle.
+- Food advice: protein first, never suggest eating less or cutting calories, favour small protein-dense foods that suit a low appetite, and name real foods.
+- Supplements: only widely studied basics relevant to their goal (for example creatine monohydrate, protein powder, electrolytes, vitamin D, magnesium, fibre). At most three, and only ones the data or goal actually supports. For each give the reason and a question to ask their prescriber or pharmacist. Mention an amount only as "the amount commonly listed on the label". Never suggest stimulants, fat burners, appetite suppressants, testosterone boosters, sleep drugs, or anything to treat a symptom.
+- Be specific to the numbers given. If the data is marked simulated, or there are fewer than 10 days, say plainly that the pattern is weak.
+- Plain words, short sentences, no em dashes.
+Reply with only a JSON object, no other text.`;
+
+async function askJson(state, system, payload, max = 900) {
+  const text = await ask(state, { system, messages: [{ role: 'user', content: JSON.stringify(payload) }], max });
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("Couldn't read the analysis. Try again.");
+  try { return JSON.parse(m[0]); } catch { throw new Error("Couldn't read the analysis. Try again."); }
+}
+const list = (x, n) => (Array.isArray(x) ? x.slice(0, n) : []);
+const str = (x) => (typeof x === 'string' ? x : '');
+
+// Today's reading of the band: what the numbers mean for training, food and recovery.
+export async function bandRead(state) {
+  const today = dayKey();
+  const o = await askJson(state, `${BAND_RULES}\nShape: {"summary": one or two sentences on how they are set up today, "today": [exactly three objects {"title": 3 to 5 words, "action": one sentence saying exactly what to do today}], "food": [two or three objects {"food": a specific food or small meal, "why": short reason tied to the data}], "supplements": [zero to three objects {"name", "why", "ask": the question for their prescriber or pharmacist}], "flag": null or one sentence}`,
+    { context: context(state), last14Days: dayTable(state, today, 14), simulated: (state.health?.[today]?.source || 'sim') === 'sim' });
+  return { summary: str(o.summary), today: list(o.today, 3).map((t) => ({ title: str(t.title), action: str(t.action) })), food: list(o.food, 3).map((f) => ({ food: str(f.food), why: str(f.why) })),
+    supplements: list(o.supplements, 3).map((x) => ({ name: str(x.name), why: str(x.why), ask: str(x.ask) })), flag: str(o.flag) || healthFlag(state, today) || '' };
+}
+
+// Patterns across the last four weeks of band data and logs.
+export async function bandPatterns(state) {
+  const rows = dayTable(state, dayKey(), 28);
+  const o = await askJson(state, `${BAND_RULES}\nFind real relationships in this table between band data (sleep, resting heart rate, HRV, steps, recovery) and what they logged (energy, mood, protein, water, pump, how the trial felt, days since dose). Only report a pattern the rows actually show, with the numbers that show it. Shape: {"findings": [zero to three objects {"pattern": one sentence with the numbers, "try": one specific thing to try next week}], "enough": true or false (false when there is too little data to trust), "note": one sentence on how much to trust this}`,
+    { days: rows, simulated: rows.some((r) => r.sleepH) && Object.values(state.health || {}).every((h) => (h.source || 'sim') === 'sim') }, 700);
+  return { findings: list(o.findings, 3).map((f) => ({ pattern: str(f.pattern), try: str(f.try) })), enough: o.enough !== false, note: str(o.note) };
 }
