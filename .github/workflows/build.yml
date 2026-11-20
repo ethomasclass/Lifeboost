@@ -1,0 +1,65 @@
+name: Build Fianna for Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm test
+      - run: npx cap sync android
+
+      # The signing key decides whether a new build can install over the old one.
+      # Best: a FIANNA_KEYSTORE_B64 repository secret. Otherwise a cached key is reused.
+      - name: Restore signing key from secret
+        env:
+          KEYSTORE_B64: ${{ secrets.FIANNA_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then echo "$KEYSTORE_B64" | base64 -d > android/app/fianna.keystore; fi
+      - name: Restore cached signing key
+        uses: actions/cache@v4
+        with:
+          path: android/app/fianna.keystore
+          key: fianna-keystore-v1
+      - name: Create signing key if there is none
+        run: |
+          if [ ! -f android/app/fianna.keystore ]; then
+            keytool -genkeypair -keystore android/app/fianna.keystore -storepass fianna-debug -keypass fianna-debug \
+              -alias fianna -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Fianna"
+          fi
+
+      - name: Build APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk Fianna.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fianna
+          path: Fianna.apk
+      - name: Publish to the Releases page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest Fianna.apk --title "Fianna (build ${{ github.run_number }})" \
+            --notes "Open this page on your Android phone and tap Fianna.apk to install."

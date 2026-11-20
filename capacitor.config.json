@@ -1,0 +1,9 @@
+{
+  "appId": "com.ethomas.fianna",
+  "appName": "Fianna",
+  "webDir": "www",
+  "android": { "backgroundColor": "#221C44" },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_fianna", "iconColor": "#F07A2E" }
+  }
+}

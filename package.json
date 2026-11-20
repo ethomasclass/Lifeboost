@@ -1,0 +1,20 @@
+{
+  "name": "fianna",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fianna: a personal training, fuel, and mind app",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/logic.test.mjs",
+    "serve": "python3 -m http.server 8080 --directory www",
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/local-notifications": "^8.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  }
+}
