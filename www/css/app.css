@@ -124,3 +124,68 @@ input[type=range] { padding: 0; min-height: 44px; border: 0; background: none; a
 .thumbs img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; display: block; }
 .thumbs .btn { width: 100%; min-height: 36px; padding: 2px; }
 @media (prefers-reduced-motion: reduce) { .carve { animation: none; stroke-dashoffset: 0; } }
+
+/* ---------- v1.2: real textures and motion ---------- */
+body { background-image: var(--ogham), url(../img/wool.jpg); background-repeat: repeat-y, repeat; background-position: 2px 0, 0 0; background-size: 16px 240px, 256px 256px; }
+.sheet { background-image: url(../img/wool.jpg); background-size: 256px 256px; }
+.slab { background: url(../img/granite.jpg) #3f3b50; background-size: 256px 256px; border-top: 1px solid #77738c; border-bottom: 3px solid #121019; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), inset 0 -10px 18px -12px rgba(0,0,0,.55), 0 2px 0 rgba(0,0,0,.25); }
+.slab:nth-of-type(2n) { background-position: 90px 140px; }
+.slab:nth-of-type(3n) { background-position: 170px 40px; }
+.bubble.coach { background: url(../img/granite.jpg) #3f3b50; background-size: 256px 256px; }
+.cloth { background: linear-gradient(180deg, rgba(74,66,140,.55), rgba(47,40,96,.72)); border: 1px solid rgba(255,255,255,.06); box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
+.slab.band::before { height: 14px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14'%3E%3Crect width='28' height='14' fill='%2315112B'/%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M-7 7C-3 1 3 1 7 7S17 13 21 7S31 1 35 7' stroke='%238F6524' stroke-width='3.4'/%3E%3Cpath d='M-7 7C-3 13 3 13 7 7S17 1 21 7S31 13 35 7' stroke='%23C9973F' stroke-width='3.4'/%3E%3Cpath d='M-7 7C-3 13 3 13 7 7S17 1 21 7S31 13 35 7' stroke='%23F0D08A' stroke-width='1'/%3E%3Cpath d='M4.500 4C5.500 5 6 6 7 7S8.500 9 9.500 10' stroke='%2315112B' stroke-width='5.4'/%3E%3Cpath d='M4.500 4C5.500 5 6 6 7 7S8.500 9 9.500 10' stroke='%238F6524' stroke-width='3.400'/%3E%3C/g%3E%3C/svg%3E"); box-shadow: 0 1px 0 rgba(0,0,0,.5); }
+.slab.band { padding-top: 28px; }
+.btn { transition: transform .08s, background-color .15s, border-color .15s; }
+.btn.go { background: linear-gradient(180deg, #FF9A4D 0, var(--ember) 45%, #DE6A20 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 0 0 rgba(240,122,46,0); text-shadow: 0 1px 0 rgba(255,255,255,.25); }
+.btn.go:active { transform: translateY(2px); }
+.btn.go.pulse { animation: glow 2.6s ease-in-out infinite; }
+@keyframes glow { 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 0 18px 2px rgba(240,122,46,.45); } }
+.btn.on { background: url(../img/bronze.jpg); background-size: 128px; border-color: #E8C27A; color: #1c1408; text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+.meter { box-shadow: inset 0 1px 2px rgba(0,0,0,.6); }
+.meter > i { background: linear-gradient(180deg, #FFA35C, var(--ember)); transform-origin: left; }
+.meter.water > i { background: linear-gradient(180deg, #9CC7EE, #5B97CF); }
+.stage { background: radial-gradient(ellipse at 50% 85%, #2a2358 0, var(--woad-deep) 70%); border: 1px solid rgba(255,255,255,.05); }
+.cue { border-left-color: var(--bronze); background: linear-gradient(90deg, rgba(201,151,63,.14), rgba(0,0,0,.2) 60%); }
+.tabs { background: url(../img/granite.jpg) #1c1930; background-size: 256px; border-top: 1px solid #6a6680; box-shadow: 0 -6px 14px rgba(0,0,0,.35); }
+.tabs::before { content: ''; position: absolute; inset: 0; background: rgba(15,12,30,.62); }
+.tabs > div { position: relative; }
+.tab.on svg { animation: pop .3s ease-out; filter: drop-shadow(0 0 5px rgba(240,122,46,.6)); }
+@keyframes pop { 40% { transform: translateY(-4px) scale(1.15); } }
+
+.woad { position: absolute; top: -70px; right: -90px; width: 300px; height: 300px; pointer-events: none; opacity: .5; animation: turn 180s linear infinite; }
+@keyframes turn { to { transform: rotate(360deg); } }
+#app { position: relative; overflow-x: clip; }
+#app > *:not(.woad) { position: relative; }
+
+/* Screens arrive: only when you change tab or open a sheet, never on a small update. */
+.enter > * { animation: rise .42s cubic-bezier(.2,.8,.3,1) both; }
+.enter > *:nth-child(2) { animation-delay: .04s; } .enter > *:nth-child(3) { animation-delay: .08s; } .enter > *:nth-child(4) { animation-delay: .12s; }
+.enter > *:nth-child(5) { animation-delay: .16s; } .enter > *:nth-child(6) { animation-delay: .2s; } .enter > *:nth-child(n+7) { animation-delay: .24s; }
+.enter > .woad { animation: turn 180s linear infinite, fadein 1.2s both; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes fadein { from { opacity: 0; } }
+.enter .meter > i { animation: fill .9s .25s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes fill { from { transform: scaleX(0); } }
+.sheet.enter { animation: sheetup .32s cubic-bezier(.2,.8,.3,1) both; }
+.sheet.enter > div > * { animation: rise .4s .08s both; }
+@keyframes sheetup { from { opacity: 0; transform: translateY(26px); } }
+
+.flame { display: inline-block; width: 18px; height: 22px; vertical-align: -3px; margin-right: 2px; transform-origin: 50% 100%; animation: flick 1.4s ease-in-out infinite; }
+@keyframes flick { 0%,100% { transform: scale(1,1) rotate(-2deg); } 35% { transform: scale(.94,1.08) rotate(2deg); } 70% { transform: scale(1.05,.95) rotate(-1deg); } }
+.count.last { color: var(--ember); animation: beat 1s ease-out infinite; }
+@keyframes beat { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.ring { position: relative; width: min(64vw, 250px); aspect-ratio: 1; margin: 10px auto; display: grid; place-items: center; }
+.ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .count { margin: 0; font-size: clamp(48px, 18vw, 80px); }
+.embers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.embers i { position: absolute; bottom: -10px; width: 6px; height: 6px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 8px 2px rgba(240,122,46,.7); animation: ember var(--t, 3s) ease-in var(--d, 0s) infinite; opacity: 0; }
+@keyframes ember { 0% { opacity: 0; transform: translate(0,0) scale(1); } 12% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x, 20px), -78vh) scale(.3); } }
+.award { animation: award .7s cubic-bezier(.2,1.4,.4,1) both; animation-delay: var(--d, .3s); }
+@keyframes award { from { opacity: 0; transform: scale(.6) rotate(-12deg); } }
+.torcimg { filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+.struck { animation: struck .28s ease-out; }
+@keyframes struck { 30% { transform: scale(.985); filter: brightness(1.5); } }
+.wordmark { display: block; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .enter > *, .sheet.enter, .sheet.enter > div > *, .woad, .flame, .btn.go.pulse, .count.last, .embers i, .award, .tab.on svg, .enter .meter > i { animation: none !important; } .embers { display: none; } }
+body { background-image: var(--ogham), linear-gradient(rgba(21,17,43,.42), rgba(21,17,43,.42)), url(../img/wool.jpg); background-repeat: repeat-y, repeat, repeat; background-position: 2px 0, 0 0, 0 0; background-size: 16px 240px, auto, 256px 256px; }
+.sheet { background-image: linear-gradient(rgba(21,17,43,.5), rgba(21,17,43,.5)), url(../img/wool.jpg); background-size: auto, 256px 256px; }

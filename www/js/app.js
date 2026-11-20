@@ -33,12 +33,20 @@ function stoneSVG(lit, of = 4, level = S.profile.level, carve = false) {
   let n = '';
   for (let i = 0; i < level; i++) n += `<path ${carve ? `class="carve" style="--d:${0.4 + i * 0.45}s"` : ''} d="M26 ${22 + i * 6} H34" stroke="#C9973F" stroke-width="2.4" stroke-linecap="round"/>`;
   for (let i = 0; i < of; i++) n += `<path d="M19 ${66 - i * 9} H26" stroke="${i < lit ? '#F07A2E' : '#3E3B4D'}" stroke-width="2.6" stroke-linecap="round"/>`;
-  return `<svg class="stone" width="52" height="80" viewBox="0 0 52 80" aria-hidden="true"><path d="M10 78 L6 22 C6 8,18 2,27 2 C38 2,46 10,45 24 L42 78 Z" fill="#6E6A7E"/><path d="M27 2 C38 2,46 10,45 24 L42 78 L30 78 L34 24 C35 12,31 5,27 2 Z" fill="#57536A"/><g fill="#8A8699"><circle cx="14" cy="34" r="1"/><circle cx="36" cy="44" r=".9"/><circle cx="31" cy="18" r="1"/></g><path d="M26 10 V74" stroke="#3E3B4D" stroke-width="1.6"/>${n}</svg>`;
+  return `<svg class="stone" width="52" height="80" viewBox="0 0 52 80" aria-hidden="true"><defs><pattern id="stg" patternUnits="userSpaceOnUse" width="60" height="60"><image href="img/granite.jpg" width="60" height="60" style="filter:brightness(1.75)"/></pattern></defs><path d="M10 78 L6 22 C6 8,18 2,27 2 C38 2,46 10,45 24 L42 78 Z" fill="#6E6A7E"/><path d="M10 78 L6 22 C6 8,18 2,27 2 C38 2,46 10,45 24 L42 78 Z" fill="url(#stg)" opacity=".9"/><path d="M27 2 C38 2,46 10,45 24 L42 78 L30 78 L34 24 C35 12,31 5,27 2 Z" fill="#17142a" opacity=".38"/><path d="M10 76 L7 23 C7 12,15 5,24 3.500" fill="none" stroke="#fff" stroke-width="1" opacity=".35"/><g fill="#8A8699"><circle cx="14" cy="34" r="1"/><circle cx="36" cy="44" r=".9"/><circle cx="31" cy="18" r="1"/></g><path d="M26 10 V74" stroke="#3E3B4D" stroke-width="1.6"/>${n}</svg>`;
 }
 function torcSVG(metal, size = 54) {
-  const c = { bronze: ['#8F6524', '#C9973F', '#E8C27A'], silver: ['#6F7480', '#B9BEC9', '#EEF0F4'], gold: ['#9A7412', '#E2B93B', '#FFE9A3'] }[metal];
-  return `<svg width="${size}" height="${size}" viewBox="-20 -20 40 40" aria-hidden="true"><path d="M-9 13 A16 16 0 1 1 9 13" fill="none" stroke="${c[0]}" stroke-width="6" stroke-linecap="round"/><path d="M-9 13 A16 16 0 1 1 9 13" fill="none" stroke="${c[1]}" stroke-width="4" stroke-dasharray="3 2"/><circle cx="-9" cy="13" r="3.4" fill="${c[1]}"/><circle cx="9" cy="13" r="3.4" fill="${c[1]}"/><circle cx="-10" cy="12" r="1.2" fill="${c[2]}"/><circle cx="8" cy="12" r="1.2" fill="${c[2]}"/></svg>`;
+  const edge = { bronze: '#5c3f12', silver: '#4a4f5a', gold: '#7a5a0c' }[metal];
+  const arc = 'M-9 13 A16 16 0 1 1 9 13';
+  return `<svg class="torcimg" width="${size}" height="${size}" viewBox="-21 -21 42 42" aria-hidden="true"><defs><pattern id="mt-${metal}" patternUnits="userSpaceOnUse" x="-21" y="-21" width="26" height="26"><image href="img/${metal}.jpg" width="26" height="26"/></pattern></defs>
+  <path d="${arc}" fill="none" stroke="${edge}" stroke-width="7.4" stroke-linecap="round"/><path d="${arc}" fill="none" stroke="url(#mt-${metal})" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="${arc}" fill="none" stroke="${edge}" stroke-width="5.6" stroke-dasharray="0.7 2.6" opacity=".55"/><path d="M-12 -9 A16 16 0 0 1 4 -15.500" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+  <circle cx="-9" cy="13" r="4.4" fill="${edge}"/><circle cx="9" cy="13" r="4.4" fill="${edge}"/><circle cx="-9" cy="13" r="3.500" fill="url(#mt-${metal})"/><circle cx="9" cy="13" r="3.500" fill="url(#mt-${metal})"/></svg>`;
 }
+const wordmark = (w = 220) => `<svg class="wordmark" width="${w}" height="${Math.round(w * 0.27)}" viewBox="-6 -6 536 142" role="img" aria-label="Fianna"><defs><g id="wm"><path d="M0 0 H70 L62 22 H22 V48 H58 L51 68 H22 V120 H0 Z"/><path d="M86 6 L108 0 V114 L86 120 Z"/><path d="M162 0 H178 L216 120 H192 L170 46 L148 120 H124 Z"/><path d="M232 0 H254 L292 74 V0 H314 V120 H292 L254 46 V120 H232 Z"/><path d="M330 0 H352 L390 74 V0 H412 V120 H390 L352 46 V120 H330 Z"/><path d="M466 0 H482 L520 120 H496 L474 46 L452 120 H428 Z"/></g></defs><use href="#wm" fill="#120E26" transform="translate(4 5)"/><use href="#wm" fill="#F2EADB"/><path d="M170 80 l9 9 l-9 9 l-9 -9 Z M474 80 l9 9 l-9 9 l-9 -9 Z" fill="#F07A2E"/></svg>`;
+const flame = '<svg class="flame" viewBox="0 0 18 22" aria-hidden="true"><path d="M9 1C10 6 15 8 15 14a6 6 0 01-12 0c0-3 2-4 3-7 1 2 2 2 3-6z" fill="#F07A2E"/><path d="M9 10c1 2 3 3 3 5.500a3 3 0 01-6 0C6 13.500 8 13 9 10z" fill="#FFD08A"/></svg>';
+const woad = '<svg class="woad" viewBox="-150 -150 300 300" aria-hidden="true"><g fill="none" stroke="#3A3275" stroke-width="9" stroke-linecap="round"><path id="wa" d="M0 0 C0 -44 58 -62 76 -26 C92 6 56 30 34 12 C20 0 30 -18 46 -12"/><use href="#wa" transform="rotate(120)"/><use href="#wa" transform="rotate(240)"/><circle r="118" stroke-width="3" stroke-dasharray="2 14"/></g></svg>';
+const embers = () => `<div class="embers" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 37 + 11) % 100}%;--t:${2.4 + ((i * 7) % 10) / 4}s;--d:${((i * 13) % 20) / 8}s;--x:${((i * 29) % 80) - 40}px"></i>`).join('')}</div>`;
 const stage = (ex, withLabel = true) => `<div class="stage">${withLabel ? `<div class="row between" style="padding:4px 8px 0"><span class="small">${esc(EX[ex].name)}</span><span class="phase" data-figlabel></span></div>` : ''}<svg data-fig="${ui.front && EX[ex].front ? EX[ex].front : EX[ex].anim || ex}" viewBox="0 0 300 240" role="img" aria-label="Animation of ${esc(EX[ex].name)}"></svg>${EX[ex].front ? `<button class="btn quiet sm" data-act="front" style="width:100%">${ui.front ? 'Show side view' : 'Show front view'}</button>` : ''}</div>`;
 const meter = (v, max, cls = '') => `<div class="meter ${cls}"><i style="width:${Math.min(100, Math.round((v / Math.max(1, max)) * 100))}%"></i></div>`;
 const proverb = () => { const p = PROVERBS[L.parseDay(today()).getDate() % PROVERBS.length]; return `<div class="proverb"><q lang="ga">${p[0]}</q><span class="small">${p[1]}</span></div>`; };
@@ -71,7 +79,7 @@ function viewToday() {
     const sess = L.buildSession(plan, S.profile.level, mode, { boss });
     const name = plan === 'walk' ? 'Treadmill walk' : TRIALS[plan].short;
     trial = `<p class="tag">${boss ? 'Boss trial · pass it to earn your next rank' : "Today's trial"}</p><h3>${boss ? `${boss}: ${name.toLowerCase()}` : name}</h3><p class="dim">${L.sessionMinutes(sess)} min · ${modeWords[mode]}${d.energy ? ` · energy ${d.energy} of 5` : ''}</p>` +
-      (done ? `<p class="moss" style="font-weight:650;margin:6px 0 0">Trial complete. Well fought.</p>` : `<button class="btn go" data-act="start" data-trial="${plan}" data-mode="${mode}">Begin trial</button>`) +
+      (done ? `<p class="moss" style="font-weight:650;margin:6px 0 0">Trial complete. Well fought.</p>` : `<button class="btn go pulse" data-act="start" data-trial="${plan}" data-mode="${mode}">Begin trial</button>`) +
       `<div class="row between" style="margin-top:8px"><button class="btn quiet sm" data-act="tab" data-tab="train">Choose another</button>${!done && mode !== 'min' ? `<button class="btn quiet sm" data-act="start" data-trial="${plan}" data-mode="min">Just 5 minutes</button>` : ''}</div>`;
   }
   return `
@@ -85,7 +93,7 @@ function viewToday() {
   ${d.energy ? '' : `<div class="cloth"><h3>How is your energy this morning?</h3><p class="small">Your trial adjusts to it. Low energy gets a shorter session, never a skipped one.</p><div class="pick">${[1, 2, 3, 4, 5].map((n) => `<button class="btn" data-act="energy" data-v="${n}" aria-label="Energy ${n} of 5">${n}</button>`).join('')}</div><div class="row between small" style="margin-top:4px"><span>Drained</span><span>Strong</span></div></div>`}
   <div class="slab band">${trial}</div>
   <div class="grid2">
-    <div class="slab"><p class="small">Streak</p><p class="big ember">${st.current} ${st.current === 1 ? 'day' : 'days'}</p><p class="small">${st.shields ? `${st.shields} ${st.shields === 1 ? 'shield' : 'shields'} banked` : 'A shield every 7 days'}</p></div>
+    <div class="slab"><p class="small">Streak</p><p class="big ember">${st.current ? flame : ''}${st.current} ${st.current === 1 ? 'day' : 'days'}</p><p class="small">${st.shields ? `${st.shields} ${st.shields === 1 ? 'shield' : 'shields'} banked` : 'A shield every 7 days'}</p></div>
     <button class="slab" data-act="tab" data-tab="fuel" style="text-align:left;color:inherit;font:inherit;border-left:0;border-right:0"><p class="small">Protein</p><p class="big">${protein} <span class="small">/ ${S.profile.proteinTarget} g</span></p></button>
   </div>
   <div class="slab"><div class="row">${stoneSVG(prog.count)}<div><p class="small">Standing stone</p><h3>${prog.count} of ${prog.need} notches carved</h3><p class="small">${S.profile.level >= LEVELS.length ? 'You hold the highest rank. Keep adding weight.' : prog.count >= prog.need && !prog.ready ? 'Finish one more that feels doable to rise.' : `${prog.need - prog.count} more full ${prog.need - prog.count === 1 ? 'trial' : 'trials'} to reach Trial ${S.profile.level + 1} (${LEVELS[S.profile.level].minutes} min).`}</p></div></div></div>
@@ -188,7 +196,7 @@ function viewProgress() {
 const closeBtn = (label = 'Close') => `<button class="btn quiet sm" data-act="close">${label}</button>`;
 
 function sheetSetup() {
-  return `<div><div style="text-align:center;margin:18px 0 10px">${fearn(84)}<h1 style="margin-top:12px">Welcome to the Fianna</h1><p class="dim" style="margin-top:6px">Three answers and your first trial is ready.</p></div>
+  return `<div><div style="text-align:center;margin:18px 0 10px">${fearn(84)}<div style="margin-top:16px">${wordmark(210)}</div><h1 style="margin-top:14px;font-size:20px">Welcome to the warband</h1><p class="dim" style="margin-top:6px">Three answers and your first trial is ready.</p></div>
   <form data-form="setup"><label for="sn">What should your coach call you?</label><input id="sn" name="name" autocomplete="given-name" required>
   <label for="sw">Body weight in pounds (optional, sets a protein range)</label><input id="sw" name="lb" type="number" inputmode="decimal" min="60" max="600">
   <label for="st">Weekday wake-up reminder</label><input id="st" name="wake" type="time" value="${S.settings.times.wake}" required>
@@ -258,14 +266,14 @@ function sheetPlayer() {
   }
   if (P.phase === 'done') {
     const r = P.result, prog = L.levelProgress(S);
-    return `<div><div class="spacer"></div><div style="text-align:center">${r.leveled ? `<div class="bigstone">${stoneSVG(0, 4, S.profile.level, true)}</div><h1 style="margin-top:12px">You rise to Trial ${S.profile.level}</h1><p class="sub">${lv().rank}, the ${lv().tree.toLowerCase()}: ${lv().meaning}.</p><p class="dim" style="margin-top:8px">${S.profile.level} ${S.profile.level === 1 ? 'stroke' : 'strokes'} on the stone spell ${lv().rank} in Ogham. Your sessions are now ${lv().minutes} minutes.</p>` : `${stoneSVG(r.counted ? prog.count : 0)}<h1 style="margin-top:8px">${r.counted ? 'A notch is carved' : 'You showed up'}</h1><p class="dim">${r.counted ? `${prog.count} of ${prog.need} toward Trial ${Math.min(S.profile.level + 1, LEVELS.length)}.` : 'The five-minute trial keeps your streak alive. That is how warriors are made.'}</p>`}
-    ${r.badges.map((x) => `<div class="cloth" style="margin-top:12px"><div class="row" style="justify-content:center">${torcSVG(x.metal, 48)}<div style="text-align:left"><p class="small">New torc</p><h3>${x.name}</h3></div></div></div>`).join('')}
+    return `<div style="position:relative">${r.leveled || r.badges.length ? embers() : ''}<div class="spacer"></div><div style="text-align:center;position:relative">${r.leveled ? `<div class="bigstone">${stoneSVG(0, 4, S.profile.level, true)}</div><h1 style="margin-top:12px">You rise to Trial ${S.profile.level}</h1><p class="sub">${lv().rank}, the ${lv().tree.toLowerCase()}: ${lv().meaning}.</p><p class="dim" style="margin-top:8px">${S.profile.level} ${S.profile.level === 1 ? 'stroke' : 'strokes'} on the stone spell ${lv().rank} in Ogham. Your sessions are now ${lv().minutes} minutes.</p>` : `<div class="bigstone" style="display:inline-block">${stoneSVG(r.counted ? prog.count : 0)}</div><h1 style="margin-top:8px">${r.counted ? 'A notch is carved' : 'You showed up'}</h1><p class="dim">${r.counted ? `${prog.count} of ${prog.need} toward Trial ${Math.min(S.profile.level + 1, LEVELS.length)}.` : 'The five-minute trial keeps your streak alive. That is how warriors are made.'}</p>`}
+    ${r.badges.map((x, i) => `<div class="cloth award" style="margin-top:12px;--d:${0.5 + i * 0.25}s"><div class="row" style="justify-content:center">${torcSVG(x.metal, 48)}<div style="text-align:left"><p class="small">New torc</p><h3>${x.name}</h3></div></div></div>`).join('')}
     ${r.rewards.map((x) => `<div class="note" style="margin-top:12px;text-align:left">Reward earned: ${esc(x.text)}</div>`).join('')}</div>
     <div class="spacer"></div><button class="btn go" data-act="close">Done</button></div>`;
   }
   const step = steps[P.i], next = steps[P.i + 1];
   if (P.phase === 'rest') {
-    return `<div>${head}<p class="tag" style="margin-top:18px">Rest</p><p class="count" id="count">${clock(P.remain)}</p><p class="dim" style="text-align:center">Next: ${next ? (next.ex ? EX[next.ex].name : next.title) : 'finish'}</p>${next?.ex ? stage(next.ex, false) : ''}<div class="spacer"></div><button class="btn" data-act="skip">Skip rest</button></div>`;
+    return `<div>${head}<p class="tag" style="margin-top:18px">Rest</p><div class="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="none" stroke="#3A3275" stroke-width="5"/><circle cx="50" cy="50" r="44" fill="none" stroke="#C9973F" stroke-width="5" stroke-dasharray="1.5 5.4" opacity=".7"/><circle id="ringArc" cx="50" cy="50" r="44" fill="none" stroke="#F07A2E" stroke-width="5" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><p class="count" id="count">${clock(P.remain)}</p></div><p class="dim" style="text-align:center">Next: ${next ? (next.ex ? EX[next.ex].name : next.title) : 'finish'}</p>${next?.ex ? stage(next.ex, false) : ''}<div class="spacer"></div><button class="btn" data-act="skip">Skip rest</button></div>`;
   }
   if (step.type === 'timed') {
     return `<div>${head}<p class="tag" style="margin-top:12px">${step.finisher ? 'Ríastrad · pump finisher' : esc(step.title)}</p><h1>${step.ex ? EX[step.ex].name : step.title}</h1>${step.ex ? stage(step.ex, false) : '<div class="breath" id="breath" style="transform:scale(.8)"><span>Breathe</span></div>'}
@@ -289,9 +297,13 @@ let stops = [];
 function render() {
   stops.forEach((f) => f()); stops = [];
   if (!S.profile.setup) ui.sheet = 'setup';
-  $('#app').innerHTML = VIEWS[ui.tab]();
+  const sheetKey = ui.sheet === 'player' ? `player:${ui.player?.phase === 'done'}` : ui.sheet;
+  const freshTab = ui.tab !== render.tab, freshSheet = ui.sheet && sheetKey !== render.sheet;
+  render.tab = ui.tab; render.sheet = sheetKey;
+  const app = $('#app'); app.className = freshTab ? 'enter' : '';
+  app.innerHTML = woad + VIEWS[ui.tab]();
   $('#tabs').innerHTML = `<div>${TABS.map(([id, label, path]) => `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>${label}</button>`).join('')}</div>`;
-  $('#overlay').innerHTML = ui.sheet ? `<div class="sheet" role="dialog" aria-modal="true">${SHEETS[ui.sheet]()}</div>` : '';
+  $('#overlay').innerHTML = ui.sheet ? `<div class="sheet${freshSheet ? ' enter' : ''}" role="dialog" aria-modal="true">${SHEETS[ui.sheet]()}</div>` : '';
   document.querySelectorAll('svg[data-fig]').forEach((svg) => stops.push(mountFigure(svg, svg.dataset.fig, svg.closest('.stage')?.querySelector('[data-figlabel]'), () => { const P = ui.player; if (S.settings.drum && ui.sheet === 'player' && P && P.phase === 'work' && P.remain == null) beep(180, 60); })));
   if (ui.sheet === 'coach') { const log = $('.sheet'); if (log) log.scrollTop = log.scrollHeight; }
 }
@@ -333,7 +345,8 @@ setInterval(() => {
   if (ui.sheet === 'player' && P && P.remain != null && !P.paused) {
     P.remain -= dt;
     const c = Math.ceil(P.remain), el = $('#count');
-    if (el) el.textContent = clock(P.remain);
+    if (el) { el.textContent = clock(P.remain); el.classList.toggle('last', c <= 3); }
+    const arc = $('#ringArc'); if (arc && P.total) arc.setAttribute('stroke-dashoffset', (276.5 * (1 - Math.max(0, P.remain) / P.total)).toFixed(1));
     if (c <= 3 && c >= 1 && P.lastBeep !== c) { P.lastBeep = c; beep(520, 90); }
     if (P.remain <= 0) advance();
   }
@@ -447,7 +460,7 @@ const FORMS = {
   set: (f) => {
     const P = ui.player, step = P.session.steps[P.i], next = P.session.steps[P.i + 1];
     (P.sets[step.ex] ||= []).push({ w: Number(f.w) || 0, r: Number(f.r) || 0 });
-    if (next && next.type === 'set') { P.phase = 'rest'; P.remain = step.rest; P.lastBeep = null; beep(660, 150); render(); } else advance();
+    if (next && next.type === 'set') { P.phase = 'rest'; P.remain = step.rest; P.total = step.rest; P.lastBeep = null; beep(660, 150); render(); } else advance();
   },
 };
 

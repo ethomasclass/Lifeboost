@@ -100,7 +100,15 @@ function sideFigure(anim, k) {
   s += line(j.sh, j.arm[0], 12, '#221C44') + line(j.arm[0], j.arm[1], 11, '#221C44');
   s += line(j.sh, j.arm[0], 9, C.near) + line(j.arm[0], j.arm[1], 8, C.near);
   if (anim.db && anim.db !== 'none') s += bell(j.arm[1], anim.db === 'goblet');
-  return s;
+  // working muscle glows ember, brightest at the hardest point of the rep
+  const glow = (0.22 + 0.68 * (anim.hotAt === 'B' ? k : 1 - k)).toFixed(2), mix = (p, q, t) => lerpP(p, q, t);
+  const hl = (p, q, w) => line(p, q, w, '#F07A2E', `opacity="${glow}"`), dot = (p, r) => `<circle cx="${f(p[0])}" cy="${f(p[1])}" r="${r}" fill="#F07A2E" opacity="${glow}"/>`;
+  const hot = { chest: () => hl(mix(j.sh, j.hip, 0.08), mix(j.sh, j.hip, 0.42), 9), back: () => hl(mix(j.sh, j.hip, 0.1), mix(j.sh, j.hip, 0.55), 9), core: () => hl(mix(j.hip, j.sh, 0.1), mix(j.hip, j.sh, 0.5), 9),
+    legs: () => hl(mix(j.hip, j.leg[0], 0.15), mix(j.hip, j.leg[0], 0.9), 6), calves: () => hl(mix(j.leg[0], j.leg[1], 0.1), mix(j.leg[0], j.leg[1], 0.7), 5), glutes: () => dot(j.hip, 8),
+    arms: () => hl(mix(j.sh, j.arm[0], 0.2), mix(j.sh, j.arm[0], 0.9), 5), shoulders: () => dot(j.sh, 7) }[anim.hot];
+  if (hot) s += hot();
+  const cx = (j.sh[0] + j.hip[0] + j.leg[0][0]) / 3;
+  return `<ellipse cx="${f(cx)}" cy="${FLOOR + 5}" rx="52" ry="4" fill="#000" opacity="0.28"/>` + s;
 }
 
 function frontFigure(anim, k) {
@@ -124,6 +132,9 @@ function frontFigure(anim, k) {
     const el = add(shd, v(a), L.UA), hd = add(el, v(fore ?? a + (anim.lying ? bend : -bend)), L.FA);
     s += line(shd, el, 12, '#221C44') + line(el, hd, 11, '#221C44') + line(shd, el, 9, C.near) + line(el, hd, 8, C.near) + bell(hd);
   }
+  const glow = (0.22 + 0.68 * (anim.hotAt === 'B' ? k : 1 - k)).toFixed(2);
+  if (anim.hot === 'chest') s += `<line x1="134" y1="${cy + (anim.lying ? 0 : 12)}" x2="166" y2="${cy + (anim.lying ? 0 : 12)}" stroke="#F07A2E" stroke-width="10" stroke-linecap="round" opacity="${glow}"/>`;
+  if (anim.hot === 'shoulders') s += `<circle cx="126" cy="${cy}" r="7" fill="#F07A2E" opacity="${glow}"/><circle cx="174" cy="${cy}" r="7" fill="#F07A2E" opacity="${glow}"/>`;
   if (anim.lying) s += `<text x="150" y="20" text-anchor="middle" font-size="11" fill="${C.far}" font-family="system-ui,sans-serif">Seen from the foot of the bench</text>`;
   return s;
 }
@@ -132,70 +143,70 @@ const stand = (x = 150) => ({ foot: [x, FLOOR], kb: 'f' });
 const flatBench = [['post', 100, 203], ['post', 178, 203], ['pad', 80, 199, 192, 199]];
 
 export const ANIMS = {
-  incline_press: { armLerp: 'point', db: 'both', props: [['post', 104, 176], ['post', 190, 203], ['pad', 156, 199, 68, 148], ['pad', 152, 199, 206, 199]],
+  incline_press: { hot: 'chest', hotAt: 'A', armLerp: 'point', db: 'both', props: [['post', 104, 176], ['post', 190, 203], ['pad', 156, 199, 68, 148], ['pad', 152, 199, 206, 199]],
     A: { hip: [150, 186], t: 210, arm: { ua: -90, fa: -90 }, leg: { th: 0, sh: 85 } }, B: { arm: { ua: 100, fa: -85 } },
     tempo: [3, 0.5, 1, 0.5], labels: ['Lower', 'Pause', 'Press', 'Squeeze'] },
-  flat_press: { armLerp: 'point', db: 'both', props: flatBench,
+  flat_press: { hot: 'chest', hotAt: 'A', armLerp: 'point', db: 'both', props: flatBench,
     A: { hip: [170, 186], t: 180, arm: { ua: -90, fa: -90 }, leg: { th: 0, sh: 86 } }, B: { arm: { ua: 100, fa: -85 } },
     tempo: [3, 0.5, 1, 0.5], labels: ['Lower', 'Pause', 'Press', 'Squeeze'] },
-  squeeze_press: { armLerp: 'point', db: 'near', props: flatBench,
+  squeeze_press: { hot: 'chest', hotAt: 'A', armLerp: 'point', db: 'near', props: flatBench,
     A: { hip: [170, 186], t: 180, arm: { ua: -90, fa: -90 }, leg: { th: 0, sh: 86 } }, B: { arm: { ua: 95, fa: -80 } },
     tempo: [2, 0, 2, 1], labels: ['Lower slow', '', 'Press', 'Crush together'] },
-  pullover: { db: 'near', props: flatBench,
+  pullover: { hot: 'chest', hotAt: 'A', db: 'near', props: flatBench,
     A: { hip: [170, 186], t: 180, arm: { ua: -90, fa: -90 }, leg: { th: 0, sh: 86 } }, B: { arm: { ua: -165, fa: -175 } },
     tempo: [3, 0.5, 2, 0.5], labels: ['Reach back', 'Stretch', 'Pull over', 'Squeeze'] },
-  row: { db: 'near', props: [['post', 168, 212], ['post', 236, 212], ['pad', 150, 208, 252, 208]],
+  row: { hot: 'back', hotAt: 'B', db: 'near', props: [['post', 168, 212], ['post', 236, 212], ['pad', 150, 208, 252, 208]],
     A: { hip: [125, 148], t: -8, arm: { ua: 90, fa: 90 }, farArm: { ua: 90, fa: 90 }, leg: stand(118) }, B: { arm: { ua: 205, fa: 95 } },
     tempo: [1, 1, 2, 0.5], labels: ['Pull', 'Squeeze', 'Lower', 'Reach'] },
-  goblet_squat: { db: 'goblet',
+  goblet_squat: { hot: 'legs', hotAt: 'B', db: 'goblet',
     A: { hip: [160, 147], t: -88, arm: { ua: 78, fa: -55 }, leg: stand(160) }, B: { hip: [128, 186], t: -68, arm: { ua: 85, fa: -48 } },
     tempo: [3, 0.5, 1, 0.5], labels: ['Sit down', 'Pause', 'Drive up', 'Stand tall'] },
-  squat_pulse: { db: 'goblet',
+  squat_pulse: { hot: 'legs', hotAt: 'B', db: 'goblet',
     A: { hip: [140, 170], t: -74, arm: { ua: 82, fa: -52 }, leg: stand(160) }, B: { hip: [128, 186], t: -68, arm: { ua: 85, fa: -48 } },
     tempo: [0.6, 0, 0.6, 0], labels: ['Pulse', '', 'Pulse', ''] },
-  rdl: { db: 'both',
+  rdl: { hot: 'legs', hotAt: 'B', db: 'both',
     A: { hip: [140, 147], t: -88, arm: { ua: 88, fa: 90 }, leg: stand(140) }, B: { hip: [108, 155], t: -18, arm: { ua: 100, fa: 100 } },
     tempo: [3, 0.5, 1.5, 0.5], labels: ['Hinge back', 'Stretch', 'Stand', 'Squeeze'] },
-  split_squat: { db: 'both',
+  split_squat: { hot: 'legs', hotAt: 'B', db: 'both',
     A: { hip: [148, 152], t: -88, arm: { ua: 90, fa: 90 }, leg: { foot: [172, FLOOR], kb: 'f' }, farLeg: { foot: [116, 224], kb: 'f', ft: 60 } }, B: { hip: [148, 178] },
     tempo: [2.5, 0.5, 1, 0.5], labels: ['Lower', 'Pause', 'Drive', 'Top'] },
-  calf_raise: { db: 'both',
+  calf_raise: { hot: 'calves', hotAt: 'B', db: 'both',
     A: { hip: [150, 147], t: -89, arm: { ua: 90, fa: 90 }, leg: { foot: [150, FLOOR], kb: 'f', ft: 0 } }, B: { hip: [150, 139], leg: { foot: [150, 220], kb: 'f', ft: 40 } },
     tempo: [1, 1, 2, 0.3], labels: ['Rise', 'Squeeze', 'Lower', 'Reset'] },
-  dead_bug: { db: 'none', props: [['mat', 80, 230]],
+  dead_bug: { hot: 'core', hotAt: 'B', db: 'none', props: [['mat', 80, 230]],
     A: { hip: [170, 212], t: 180, arm: { ua: -90, fa: -90 }, farArm: { ua: -90, fa: -90 }, leg: { th: -90, sh: 0 }, farLeg: { th: -90, sh: 0 } },
     B: { farArm: { ua: -170, fa: -175 }, leg: { th: -12, sh: -8 } },
     tempo: [2, 1, 2, 0.5], labels: ['Reach long', 'Hold', 'Return', 'Reset'] },
-  leg_raise: { db: 'none', props: [['mat', 70, 240]],
+  leg_raise: { hot: 'core', hotAt: 'B', db: 'none', props: [['mat', 70, 240]],
     A: { hip: [150, 214], t: 180, arm: { ua: 3, fa: 0 }, leg: { th: -6, sh: -6 } }, B: { leg: { th: -85, sh: -80 } },
     tempo: [2, 0.5, 3, 0.3], labels: ['Raise', 'Top', 'Lower slow', 'Hover'] },
-  glute_bridge: { db: 'none', props: [['mat', 70, 230]],
+  glute_bridge: { hot: 'glutes', hotAt: 'B', db: 'none', props: [['mat', 70, 230]],
     A: { hip: [153, 214], t: 180, arm: { ua: 5, fa: 0 }, leg: { foot: [190, 222], kb: 'u', ft: 0 } }, B: { hip: [150, 192], t: 158.2 },
     tempo: [1.5, 2, 1.5, 0.5], labels: ['Lift', 'Squeeze', 'Lower', 'Reset'] },
-  plank: { db: 'none', props: [['mat', 50, 250]],
+  plank: { hot: 'core', hotAt: 'A', db: 'none', props: [['mat', 50, 250]],
     A: { hip: [147.6, 198], t: -8, arm: { ua: 90, fa: 0 }, leg: { th: 172, sh: 172, ft: 90 } }, B: { hip: [147.6, 199.5] },
     tempo: [2, 0, 2, 0], labels: ['Brace', '', 'Breathe', ''] },
-  incline_pushup: { db: 'none', props: [['post', 205, 200], ['post', 262, 200], ['pad', 195, 197, 272, 197]],
+  incline_pushup: { hot: 'chest', hotAt: 'B', db: 'none', props: [['post', 205, 200], ['post', 262, 200], ['pad', 195, 197, 272, 197]],
     A: { hip: [165.2, 166.2], t: -42.5, arm: { hand: [215, 190], eb: 'b' }, leg: { th: 137.5, sh: 137.5, ft: 90 } },
     B: { hip: [175.7, 180.6], t: -30, leg: { th: 150, sh: 150, ft: 90 } },
     tempo: [2, 0.5, 1, 0.5], labels: ['Lower', 'Pause', 'Push', 'Lock out'] },
-  shoulder_press: { armLerp: 'point', db: 'both', props: [['post', 150, 203], ['pad', 124, 199, 186, 199], ['pad', 124, 196, 124, 122]],
+  shoulder_press: { hot: 'shoulders', hotAt: 'B', armLerp: 'point', db: 'both', props: [['post', 150, 203], ['pad', 124, 199, 186, 199], ['pad', 124, 196, 124, 122]],
     A: { hip: [140, 186], t: -90, arm: { ua: 75, fa: -90 }, leg: { th: 0, sh: 90 } }, B: { arm: { ua: -90, fa: -90 } },
     tempo: [1, 0.5, 3, 0.5], labels: ['Press', 'Top', 'Lower', 'Ready'] },
-  curl: { db: 'both',
+  curl: { hot: 'arms', hotAt: 'B', db: 'both',
     A: { hip: [150, 147], t: -89, arm: { ua: 90, fa: 85 }, leg: stand() }, B: { arm: { ua: 92, fa: -75 } },
     tempo: [1, 0.5, 3, 0.3], labels: ['Curl', 'Squeeze', 'Lower', 'Reset'] },
-  triceps_ext: { db: 'near',
+  triceps_ext: { hot: 'arms', hotAt: 'A', db: 'near',
     A: { hip: [150, 147], t: -89, arm: { ua: -85, fa: -90 }, leg: stand() }, B: { arm: { ua: -85, fa: -230 } },
     tempo: [3, 0.5, 1, 0.5], labels: ['Lower behind', 'Stretch', 'Extend', 'Squeeze'] },
   walk: { db: 'none', props: [['bar', 206, 232, 224, 150], ['bar', 224, 150, 204, 150], ['pad', 96, 234, 216, 234]],
     A: { hip: [150, 148], t: -86, arm: { ua: 115, fa: 70 }, farArm: { ua: 65, fa: 20 }, leg: { th: 68, sh: 96 }, farLeg: { th: 112, sh: 122 } },
     B: { arm: { ua: 65, fa: 20 }, farArm: { ua: 115, fa: 70 }, leg: { th: 112, sh: 122 }, farLeg: { th: 68, sh: 96 } },
     tempo: [0.5, 0, 0.5, 0], labels: ['Stride', '', 'Stride', ''] },
-  press_front: { view: 'front', lying: true, A: { a: 183, f: 183 }, B: { a: 78, f: 180 }, tempo: [3, 0.5, 1, 0.5], labels: ['Lower', 'Pause', 'Press', 'Squeeze'] },
-  ohp_front: { view: 'front', A: { a: 104, f: 180 }, B: { a: 176, f: 180 }, tempo: [1, 0.5, 3, 0.5], labels: ['Press', 'Top', 'Lower', 'Ready'] },
-  lateral_raise: { view: 'front', A: { a: 8 }, B: { a: 86 }, tempo: [1, 0.5, 2, 0.3], labels: ['Raise', 'Hold', 'Lower', 'Reset'] },
-  fly: { view: 'front', lying: true, bend: 12, A: { a: 194 }, B: { a: 102 }, tempo: [3, 0.5, 1.5, 0.5], labels: ['Open wide', 'Stretch', 'Hug in', 'Squeeze'] },
+  press_front: { hot: 'chest', hotAt: 'A', view: 'front', lying: true, A: { a: 183, f: 183 }, B: { a: 78, f: 180 }, tempo: [3, 0.5, 1, 0.5], labels: ['Lower', 'Pause', 'Press', 'Squeeze'] },
+  ohp_front: { hot: 'shoulders', hotAt: 'B', view: 'front', A: { a: 104, f: 180 }, B: { a: 176, f: 180 }, tempo: [1, 0.5, 3, 0.5], labels: ['Press', 'Top', 'Lower', 'Ready'] },
+  lateral_raise: { hot: 'shoulders', hotAt: 'B', view: 'front', A: { a: 8 }, B: { a: 86 }, tempo: [1, 0.5, 2, 0.3], labels: ['Raise', 'Hold', 'Lower', 'Reset'] },
+  fly: { hot: 'chest', hotAt: 'A', view: 'front', lying: true, bend: 12, A: { a: 194 }, B: { a: 102 }, tempo: [3, 0.5, 1.5, 0.5], labels: ['Open wide', 'Stretch', 'Hug in', 'Squeeze'] },
 };
 
 export function figureSVG(id, k) {
