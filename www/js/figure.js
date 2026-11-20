@@ -105,6 +105,7 @@ function sideFigure(anim, k) {
 
 function frontFigure(anim, k) {
   const a = lerp(anim.A.a, anim.B.a, k), bend = anim.bend ?? 10;
+  const fore = anim.A.f != null ? lerp(anim.A.f, anim.B.f, k) : null;
   const cy = anim.lying ? 120 : 88;
   let s = '';
   if (anim.lying) {
@@ -120,7 +121,7 @@ function frontFigure(anim, k) {
   for (const side of [-1, 1]) {
     const shd = [150 + side * 24, cy];
     const v = (ang) => [side * Math.sin(rad(ang)), Math.cos(rad(ang))];
-    const el = add(shd, v(a), L.UA), hd = add(el, v(a + (anim.lying ? bend : -bend)), L.FA);
+    const el = add(shd, v(a), L.UA), hd = add(el, v(fore ?? a + (anim.lying ? bend : -bend)), L.FA);
     s += line(shd, el, 12, '#221C44') + line(el, hd, 11, '#221C44') + line(shd, el, 9, C.near) + line(el, hd, 8, C.near) + bell(hd);
   }
   if (anim.lying) s += `<text x="150" y="20" text-anchor="middle" font-size="11" fill="${C.far}" font-family="system-ui,sans-serif">Seen from the foot of the bench</text>`;
@@ -191,6 +192,8 @@ export const ANIMS = {
     A: { hip: [150, 148], t: -86, arm: { ua: 115, fa: 70 }, farArm: { ua: 65, fa: 20 }, leg: { th: 68, sh: 96 }, farLeg: { th: 112, sh: 122 } },
     B: { arm: { ua: 65, fa: 20 }, farArm: { ua: 115, fa: 70 }, leg: { th: 112, sh: 122 }, farLeg: { th: 68, sh: 96 } },
     tempo: [0.5, 0, 0.5, 0], labels: ['Stride', '', 'Stride', ''] },
+  press_front: { view: 'front', lying: true, A: { a: 183, f: 183 }, B: { a: 78, f: 180 }, tempo: [3, 0.5, 1, 0.5], labels: ['Lower', 'Pause', 'Press', 'Squeeze'] },
+  ohp_front: { view: 'front', A: { a: 104, f: 180 }, B: { a: 176, f: 180 }, tempo: [1, 0.5, 3, 0.5], labels: ['Press', 'Top', 'Lower', 'Ready'] },
   lateral_raise: { view: 'front', A: { a: 8 }, B: { a: 86 }, tempo: [1, 0.5, 2, 0.3], labels: ['Raise', 'Hold', 'Lower', 'Reset'] },
   fly: { view: 'front', lying: true, bend: 12, A: { a: 194 }, B: { a: 102 }, tempo: [3, 0.5, 1.5, 0.5], labels: ['Open wide', 'Stretch', 'Hug in', 'Squeeze'] },
 };
@@ -219,13 +222,14 @@ export function phaseAt(id, t) {
 }
 
 // Mounts a looping animation into an <svg>. Returns a stop function.
-export function mountFigure(svg, id, labelEl) {
-  let raf = 0, t = 0, last = performance.now(), alive = true;
+export function mountFigure(svg, id, labelEl, onPhase) {
+  let raf = 0, t = 0, last = performance.now(), alive = true, lastLabel = null;
   const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const draw = () => {
     const p = phaseAt(id, t);
     svg.innerHTML = figureSVG(id, p.k);
     if (labelEl) labelEl.textContent = p.label + (p.left > 1 ? ' · ' + p.left : '');
+    if (onPhase && p.label !== lastLabel) { if (lastLabel !== null) onPhase(p.label); lastLabel = p.label; }
   };
   const tick = (now) => {
     if (!alive) return;

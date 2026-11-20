@@ -10,8 +10,8 @@ export function newState() {
   return {
     v: 1,
     profile: { name: '', level: 1, weightLb: null, proteinTarget: 120, waterTarget: 80, doseDay: null, dbStep: 5, setup: false },
-    settings: { times: { wake: '05:30', midday: '12:00', evening: '19:30', bedtime: '21:30' }, weekend: { wake: '07:30', midday: '12:30', evening: '19:30', bedtime: '22:00' }, notify: true, skipDate: null, apiKey: '', model: 'claude-sonnet-5-5' },
-    sessions: [], days: {}, weights: [], meals: [], rewards: [], badges: {}, chat: [],
+    settings: { times: { wake: '05:30', midday: '12:00', evening: '19:30', bedtime: '21:30' }, weekend: { wake: '07:30', midday: '12:30', evening: '19:30', bedtime: '22:00' }, notify: true, skipDate: null, apiKey: '', workspaceId: '', model: 'claude-sonnet-5-5', speak: true, drum: false, lastBackup: null },
+    sessions: [], days: {}, weights: [], meals: [], rewards: [], badges: {}, chat: [], doses: [],
   };
 }
 
@@ -44,7 +44,7 @@ export function repsFor(exId, level) {
   return level <= 2 ? [10, 12] : level === 3 ? [8, 12] : [8, 10];
 }
 
-export function buildSession(trialId, level, mode = 'full') {
+export function buildSession(trialId, level, mode = 'full', opts = {}) {
   const steps = [];
   if (trialId === 'walk') {
     const w = WALKS[level - 1];
@@ -76,9 +76,11 @@ export function buildSession(trialId, level, mode = 'full') {
       for (let r = 1; r <= rounds; r++) for (const ex of pair) set(ex, r);
     }
   }
-  if (mode !== 'min') for (const f of t.finisher) steps.push({ type: 'timed', finisher: true, ex: f.ex, secs: mode === 'light' ? Math.round(f.secs * 0.6) : f.secs, title: 'Ríastrad', note: f.note });
+  const fin = t.finishers.find((f) => f.id === opts.finisher) || t.finishers[0];
+  const stretch = mode === 'light' ? 0.6 : opts.boss ? 1.4 : 1;
+  if (mode !== 'min') for (const f of fin.steps) steps.push({ type: 'timed', finisher: true, ex: f.ex, secs: Math.round(f.secs * stretch), title: 'Ríastrad', note: f.note });
   steps.push({ type: 'timed', ex: null, secs: 30, title: 'Breathe', note: 'Slow breath in through your nose, long breath out.' });
-  return { trialId, level, mode, steps, name: t.name };
+  return { trialId, level, mode, steps, name: opts.boss || t.name, boss: opts.boss || null, finisherId: mode === 'min' ? null : fin.id };
 }
 
 export function sessionMinutes(session) {
@@ -119,6 +121,15 @@ export function suggestWeight(state, exId, level = state.profile.level) {
   const last = hist[0].sets, w = Math.max(...last.map((s) => s.w));
   const top = last.filter((s) => s.w === w);
   if (top.every((s) => s.r >= hi)) return { w: w + state.profile.dbStep, note: `You hit ${hi} on every set. Go up ${state.profile.dbStep} lb.`, up: true };
+  // Plateau: same top weight for three sessions with no more reps than three sessions ago.
+  if (hist.length >= 3) {
+    const score = (sets) => { const m = Math.max(...sets.map((x) => x.w)); return [m, sets.filter((x) => x.w === m).reduce((a, x) => a + x.r, 0)]; };
+    const [a, b, c] = hist.slice(0, 3).map((h) => score(h.sets));
+    if (a[0] === b[0] && b[0] === c[0] && a[1] <= c[1]) {
+      const step = state.profile.dbStep, lighter = Math.max(step, Math.floor((w * 0.9) / step) * step);
+      return { w: lighter === w ? Math.max(step, w - step) : lighter, note: 'Stalled for three sessions. Go lighter this week with slow, clean reps, then build back up.', deload: true };
+    }
+  }
   const missed = (sets) => sets.some((s) => s.r < lo);
   if (hist.length >= 2 && missed(last) && missed(hist[1].sets)) return { w, note: 'Hold this weight until the reps come back.' };
   return { w, note: `Same weight. Aim for ${hi} reps on every set.` };
@@ -152,17 +163,24 @@ export function activeDays(state) {
   return [...set].sort();
 }
 
+// A shield is banked for every 7th active day in a run (2 at most). A shield covers one longer
+// gap of up to 10 days, so a rough week does not erase months of work.
 export function streak(state, today = dayKey()) {
   const days = activeDays(state).filter((d) => d <= today);
-  if (!days.length) return { current: 0, best: 0, lastActive: null };
-  let best = 1, run = 1;
+  if (!days.length) return { current: 0, best: 0, lastActive: null, shields: 0, shielded: false };
+  let best = 1, run = 1, bank = 0;
   for (let i = 1; i < days.length; i++) {
-    run = daysBetween(days[i - 1], days[i]) <= 3 ? run + 1 : 1;
+    const gap = daysBetween(days[i - 1], days[i]);
+    if (gap <= 3) run += 1;
+    else if (bank > 0 && gap <= 10) { bank -= 1; run += 1; }
+    else run = 1;
+    if (run % 7 === 0) bank = Math.min(2, bank + 1);
     best = Math.max(best, run);
   }
-  const lastActive = days[days.length - 1];
-  const current = daysBetween(lastActive, today) <= 3 ? run : 0;
-  return { current, best: Math.max(best, current), lastActive };
+  const lastActive = days[days.length - 1], gap = daysBetween(lastActive, today);
+  const shielded = gap > 3 && gap <= 10 && bank > 0;
+  const current = gap <= 3 || shielded ? run : 0;
+  return { current, best: Math.max(best, current), lastActive, shields: bank, shielded };
 }
 
 export function needsComeback(state, today = dayKey()) {
@@ -220,4 +238,47 @@ export function weekReport(state, today = dayKey()) {
     mind: ds.reduce((a, d) => a + (d.mind || 0), 0),
     weightChange: ws.length && before ? Math.round((ws[ws.length - 1].lb - before.lb) * 10) / 10 : null,
   };
+}
+
+// ---------- Pump learning ----------
+// Try each finisher twice, then favour the one with the best average pump rating.
+export function chooseFinisher(state, trialId) {
+  const t = TRIALS[trialId]; if (!t) return null;
+  const rated = (id) => state.sessions.filter((s) => s.trialId === trialId && s.finisherId === id && s.pump);
+  const info = t.finishers.map((f) => { const r = rated(f.id); return { id: f.id, n: r.length, avg: r.length ? r.reduce((a, s) => a + s.pump, 0) / r.length : 0 }; });
+  const untried = info.filter((f) => f.n < 2).sort((a, b) => a.n - b.n)[0];
+  if (untried) return untried.id;
+  return info.sort((a, b) => b.avg - a.avg)[0].id;
+}
+
+// The last trial before a new rank is a named boss trial with a longer finisher.
+export function bossFor(state, trialId, mode) {
+  if (trialId === 'walk' || mode !== 'full' || state.profile.level >= LEVELS.length) return null;
+  const p = levelProgress(state);
+  return p.count === p.need - 1 ? LEVELS[state.profile.level - 1].boss : null;
+}
+
+// ---------- Dose days ----------
+// Days since the most recent logged dose (0 = dose day), or null when no dose is within a week.
+export function doseOffset(state, k) {
+  const prior = (state.doses || []).filter((d) => d <= k).sort().pop();
+  if (!prior) return null;
+  const n = daysBetween(prior, k);
+  return n <= 6 ? n : null;
+}
+
+// Average logged energy for each day after a dose. Low days need at least two readings.
+export function dosePattern(state) {
+  const sum = Array(7).fill(0), n = Array(7).fill(0);
+  for (const [k, d] of Object.entries(state.days)) {
+    const off = doseOffset(state, k);
+    if (off != null && d.energy) { sum[off] += d.energy; n[off] += 1; }
+  }
+  const avg = sum.map((v, i) => (n[i] ? Math.round((v / n[i]) * 10) / 10 : null));
+  return { avg, n, low: avg.map((v, i) => (v != null && n[i] >= 2 && v <= 2.5 ? i : null)).filter((v) => v != null) };
+}
+
+export function isLowDoseDay(state, k) {
+  const off = doseOffset(state, k);
+  return off != null && dosePattern(state).low.includes(off);
 }

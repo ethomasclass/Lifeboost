@@ -1,0 +1,17 @@
+name: Keep signing key
+
+# The APK signing key lives in the Actions cache, which is dropped after 7 unused days.
+# Touching it twice a week keeps it, so new builds keep installing over the old app.
+on:
+  schedule:
+    - cron: '17 9 * * 1,4'
+  workflow_dispatch:
+
+jobs:
+  touch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache/restore@v4
+        with:
+          path: android/app/fianna.keystore
+          key: fianna-keystore-v1

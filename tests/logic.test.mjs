@@ -6,7 +6,7 @@ import { ANIMS } from '../www/js/figure.js';
 const sess = (date, over = {}) => ({ date, trialId: 'chest_back', level: 1, mode: 'full', felt: 'doable', sets: {}, minutes: 10, ...over });
 
 // every exercise used by a trial exists and has an animation
-for (const t of Object.values(TRIALS)) for (const id of [...t.pool, ...t.finisher.map((f) => f.ex)]) {
+for (const t of Object.values(TRIALS)) for (const id of [...t.pool, ...t.finishers.flatMap((f) => f.steps.map((x) => x.ex))]) {
   assert.ok(EX[id], `missing exercise ${id}`);
   assert.ok(ANIMS[EX[id].anim || id], `missing animation for ${id}`);
 }
@@ -78,5 +78,53 @@ assert.equal(L.planFor('2026-11-21'), 'rest');
 // weekly report
 const r = L.weekReport(s, '2026-11-20');
 assert.equal(r.strength, 1); assert.equal(r.minutes, 10);
+
+// front views exist
+for (const e of Object.values(EX)) if (e.front) assert.ok(ANIMS[e.front], `missing front view ${e.front}`);
+
+// plateau: three sessions stuck at the same weight and reps
+s = L.newState();
+s.sessions = ['2026-11-02', '2026-11-04', '2026-11-06'].map((d) => sess(d, { sets: { curl: [{ w: 20, r: 10 }, { w: 20, r: 10 }] } }));
+assert.equal(L.suggestWeight(s, 'curl').deload, true);
+assert.equal(L.suggestWeight(s, 'curl').w, 15);
+s.sessions[2].sets.curl = [{ w: 20, r: 11 }, { w: 20, r: 10 }];
+assert.equal(L.suggestWeight(s, 'curl').deload, undefined, 'more reps means no plateau');
+
+// streak shields: 7 active days bank a shield that covers a week away
+s = L.newState();
+s.sessions = Array.from({ length: 7 }, (_, i) => sess(L.addDays('2026-10-01', i)));
+assert.equal(L.streak(s, '2026-10-07').shields, 1);
+assert.equal(L.streak(s, '2026-10-14').current, 7, 'shield holds the streak after 7 quiet days');
+assert.equal(L.streak(s, '2026-10-14').shielded, true);
+assert.equal(L.streak(s, '2026-10-20').current, 0, 'a shield does not cover 13 days');
+s.sessions.push(sess('2026-10-14'));
+assert.equal(L.streak(s, '2026-10-14').current, 8);
+assert.equal(L.streak(s, '2026-10-14').shields, 0, 'the shield was spent');
+
+// pump learning
+s = L.newState();
+assert.equal(L.chooseFinisher(s, 'chest_back'), 'a');
+s.sessions = [sess('2026-11-02', { finisherId: 'a', pump: 2 }), sess('2026-11-04', { finisherId: 'a', pump: 3 })];
+assert.equal(L.chooseFinisher(s, 'chest_back'), 'b', 'tries the other finisher next');
+s.sessions.push(sess('2026-11-06', { finisherId: 'b', pump: 5 }), sess('2026-11-09', { finisherId: 'b', pump: 4 }));
+assert.equal(L.chooseFinisher(s, 'chest_back'), 'b', 'keeps the better pump');
+assert.equal(L.buildSession('chest_back', 1, 'full', { finisher: 'b' }).finisherId, 'b');
+
+// boss trial is the last one before a new rank
+s = L.newState(); s.sessions = [1, 2, 3].map((d) => sess(`2026-11-0${d}`));
+assert.equal(L.bossFor(s, 'chest_back', 'full'), 'The Salmon Leap');
+assert.equal(L.bossFor(s, 'chest_back', 'light'), null);
+assert.equal(L.bossFor(s, 'walk', 'full'), null);
+const boss = L.buildSession('chest_back', 1, 'full', { boss: 'The Salmon Leap' });
+assert.ok(L.sessionMinutes(boss) >= L.sessionMinutes(L.buildSession('chest_back', 1)));
+
+// dose days
+s = L.newState(); s.doses = ['2026-11-01', '2026-11-08'];
+assert.equal(L.doseOffset(s, '2026-11-03'), 2); assert.equal(L.doseOffset(s, '2026-11-08'), 0); assert.equal(L.doseOffset(s, '2026-10-30'), null);
+s.days['2026-11-02'] = { energy: 2, food: [], water: 0, mind: 0 }; s.days['2026-11-09'] = { energy: 2, food: [], water: 0, mind: 0 };
+s.days['2026-11-05'] = { energy: 4, food: [], water: 0, mind: 0 }; s.days['2026-11-12'] = { energy: 5, food: [], water: 0, mind: 0 };
+assert.deepEqual(L.dosePattern(s).low, [1]);
+s.doses.push('2026-11-15');
+assert.equal(L.isLowDoseDay(s, '2026-11-16'), true); assert.equal(L.isLowDoseDay(s, '2026-11-19'), false);
 
 console.log('all logic tests passed');

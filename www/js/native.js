@@ -5,6 +5,7 @@ const plugin = (name) => window.Capacitor?.Plugins?.[name];
 export const isNative = () => !!window.Capacitor?.isNativePlatform?.();
 
 const SLOTS = ['wake', 'midday', 'evening', 'bedtime'];
+const WAKE_CHANNEL = 'fianna_wake_v1';
 
 // One repeating weekly notification per slot per weekday (Capacitor weekday: 1 = Sunday).
 export function buildSchedule(settings) {
@@ -16,7 +17,9 @@ export function buildSchedule(settings) {
       if (!time) continue;
       const [hour, minute] = time.split(':').map(Number);
       const [title, body] = NOTIFY[slot];
-      out.push({ id: (si + 1) * 10 + wd, title, body, schedule: { on: { weekday: wd, hour, minute }, allowWhileIdle: true }, smallIcon: 'ic_stat_fianna', iconColor: '#F07A2E' });
+      const n = { id: (si + 1) * 10 + wd, title, body, schedule: { on: { weekday: wd, hour, minute }, allowWhileIdle: true }, smallIcon: 'ic_stat_fianna', iconColor: '#F07A2E' };
+      if (slot === 'wake') { n.channelId = WAKE_CHANNEL; n.sound = 'carnyx.wav'; }
+      out.push(n);
     }
   });
   return out;
@@ -32,6 +35,8 @@ export async function syncNotifications(settings) {
     let perm = await LN.checkPermissions();
     if (perm.display !== 'granted') perm = await LN.requestPermissions();
     if (perm.display !== 'granted') return { ok: false, reason: 'Notifications are turned off for Fianna in your phone settings.' };
+    // The wake-up reminder gets its own channel so it can play the carnyx horn.
+    try { await LN.createChannel({ id: WAKE_CHANNEL, name: 'Wake-up call', description: 'The morning carnyx', importance: 4, sound: 'carnyx.wav', vibration: true }); } catch { /* older Android */ }
     // "Skip today": leave out today's weekday; it comes back the next time the app opens on a later day.
     const today = new Date(), key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const list = settings.skipDate === key ? all.filter((n) => n.schedule.on.weekday !== today.getDay() + 1) : all;
@@ -64,8 +69,12 @@ export async function keepAwake(on) {
   } catch { /* not supported */ }
 }
 
+// Speech: the native text-to-speech plugin in the installed app, the browser voice elsewhere.
+export function canSpeak() { return !!(isNative() && plugin('TextToSpeech')) || !!window.speechSynthesis; }
 export function say(text) {
   try {
+    const T = isNative() && plugin('TextToSpeech');
+    if (T) { T.stop().catch(() => {}).finally(() => T.speak({ text, lang: 'en-US', rate: 0.95 }).catch(() => {})); return true; }
     if (!window.speechSynthesis) return false;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text); u.rate = 0.9;
@@ -73,4 +82,17 @@ export function say(text) {
     return true;
   } catch { return false; }
 }
-export function hush() { try { window.speechSynthesis?.cancel(); } catch { /* nothing */ } }
+export function hush() {
+  try { const T = isNative() && plugin('TextToSpeech'); if (T) T.stop().catch(() => {}); else window.speechSynthesis?.cancel(); } catch { /* nothing */ }
+}
+
+export function playHorn() { try { new Audio('carnyx.wav').play(); } catch { /* no audio */ } }
+
+// Writes the backup to a file and opens the share sheet (Drive, email, Files). Returns false in a browser.
+export async function shareBackup(name, text) {
+  const FS = plugin('Filesystem'), SH = plugin('Share');
+  if (!isNative() || !FS || !SH) return false;
+  const { uri } = await FS.writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
+  await SH.share({ title: 'Fianna backup', text: 'Fianna backup file', url: uri, dialogTitle: 'Save your Fianna backup' });
+  return true;
+}

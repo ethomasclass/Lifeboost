@@ -1,8 +1,8 @@
 // Fianna content: exercises, trials, levels, badges, words.
 
 export const EX = {
-  incline_press: { name: 'Incline dumbbell press', cues: ['Bench at 30 degrees, feet flat, shoulder blades pinched back and down.', 'Lower for 3 seconds to the top of your chest, elbows about 45 degrees from your body.', 'Press straight up over your shoulders and squeeze your chest at the top.'] },
-  flat_press: { name: 'Flat dumbbell press', cues: ['Lie flat, feet planted, shoulder blades pinched together.', 'Lower slowly until the bells are level with your chest.', 'Press up and slightly together. Do not bang the bells.'] },
+  incline_press: { name: 'Incline dumbbell press', front: 'press_front', cues: ['Bench at 30 degrees, feet flat, shoulder blades pinched back and down.', 'Lower for 3 seconds to the top of your chest, elbows about 45 degrees from your body.', 'Press straight up over your shoulders and squeeze your chest at the top.'] },
+  flat_press: { name: 'Flat dumbbell press', front: 'press_front', cues: ['Lie flat, feet planted, shoulder blades pinched together.', 'Lower slowly until the bells are level with your chest.', 'Press up and slightly together. Do not bang the bells.'] },
   squeeze_press: { name: 'Squeeze press', cues: ['Press the two dumbbells hard against each other the whole time.', 'Lower slowly to your chest while still squeezing.', 'Press up and crush the bells together at the top.'] },
   pullover: { name: 'Dumbbell pullover', cues: ['Hold one dumbbell with both hands above your chest, elbows soft.', 'Reach back over your head until you feel a stretch in your chest and lats.', 'Pull the bell back over your chest in a wide arc.'] },
   fly: { name: 'Dumbbell fly', cues: ['Start with the bells together above your chest, elbows slightly bent.', 'Open your arms wide and slow, like hugging a barrel.', 'Squeeze your chest to bring the bells back together.'] },
@@ -18,7 +18,7 @@ export const EX = {
   glute_bridge: { name: 'Glute bridge hold', bw: true, hold: true, cues: ['Feet flat, close to your hips.', 'Lift your hips until your body is a straight line.', 'Squeeze your glutes hard and keep breathing.'] },
   plank: { name: 'Plank', bw: true, hold: true, reps: [20, 30], cues: ['Elbows under shoulders.', 'Straight line from head to heels. Do not let your hips sag.', 'Squeeze your glutes and breathe slowly.'] },
   incline_pushup: { name: 'Incline push-up', bw: true, reps: [8, 15], cues: ['Hands on the bench, body in one straight line.', 'Lower your chest to the bench for 2 seconds.', 'Push the bench away and lock out.'] },
-  shoulder_press: { name: 'Seated shoulder press', cues: ['Sit tall against the upright bench, bells at shoulder height.', 'Press straight up without arching your back.', 'Lower for 3 seconds to shoulder height.'] },
+  shoulder_press: { name: 'Seated shoulder press', front: 'ohp_front', cues: ['Sit tall against the upright bench, bells at shoulder height.', 'Press straight up without arching your back.', 'Lower for 3 seconds to shoulder height.'] },
   lateral_raise: { name: 'Lateral raise', cues: ['Use a light weight. Slight bend in your elbows.', 'Raise out to the sides until your arms are level with your shoulders.', 'Lower for 2 seconds. No swinging.'] },
   curl: { name: 'Dumbbell curl', cues: ['Elbows pinned to your sides.', 'Curl up without leaning back.', 'Lower for 3 seconds.'] },
   triceps_ext: { name: 'Overhead triceps extension', cues: ['Hold one dumbbell overhead with both hands.', 'Lower it behind your head, elbows pointing up.', 'Extend back to the top and squeeze.'] },
@@ -26,21 +26,24 @@ export const EX = {
 };
 
 export const LEVELS = [
-  { n: 1, minutes: 10, rank: 'Beith', tree: 'Birch', meaning: 'the tree of new beginnings' },
-  { n: 2, minutes: 15, rank: 'Luis', tree: 'Rowan', meaning: 'the tree of protection' },
-  { n: 3, minutes: 20, rank: 'Fearn', tree: 'Alder', meaning: 'the shield tree of warriors' },
-  { n: 4, minutes: 25, rank: 'Sail', tree: 'Willow', meaning: 'the tree that bends and does not break' },
+  { n: 1, minutes: 10, rank: 'Beith', tree: 'Birch', meaning: 'the tree of new beginnings', boss: 'The Salmon Leap' },
+  { n: 2, minutes: 15, rank: 'Luis', tree: 'Rowan', meaning: 'the tree of protection', boss: 'The Running of the Wood' },
+  { n: 3, minutes: 20, rank: 'Fearn', tree: 'Alder', meaning: 'the shield tree of warriors', boss: 'The Shield and the Nine Spears' },
+  { n: 4, minutes: 25, rank: 'Sail', tree: 'Willow', meaning: 'the tree that bends and does not break', boss: 'The Thorn Unbroken' },
   { n: 5, minutes: 30, rank: 'Nion', tree: 'Ash', meaning: 'the tree spear shafts were cut from' },
 ];
 
 // How many moves from each pool a level uses, and the Riastrad finisher.
 export const TRIALS = {
   chest_back: { name: 'Trial of Chest and Back', short: 'Chest and back', pool: ['incline_press', 'row', 'flat_press', 'fly', 'pullover', 'curl'], count: [2, 3, 4, 5, 6],
-    finisher: [{ ex: 'incline_pushup', secs: 45, note: 'As many good reps as you can.' }, { ex: 'squeeze_press', secs: 30, note: 'Light bells. Slow and constant squeeze.' }] },
+    finishers: [{ id: 'a', steps: [{ ex: 'incline_pushup', secs: 45, note: 'As many good reps as you can.' }, { ex: 'squeeze_press', secs: 30, note: 'Light bells. Slow and constant squeeze.' }] },
+      { id: 'b', steps: [{ ex: 'flat_press', secs: 40, note: 'Drop set: lighter bells, steady reps, stop just short of failure.' }, { ex: 'fly', secs: 35, note: 'Drop the weight again and keep going.' }] }] },
   legs_core: { name: 'Trial of Legs and Core', short: 'Legs and core', pool: ['goblet_squat', 'dead_bug', 'rdl', 'split_squat', 'leg_raise', 'calf_raise'], count: [2, 3, 4, 5, 6],
-    finisher: [{ ex: 'squat_pulse', secs: 45, note: 'Short bounces in the bottom half.' }, { ex: 'glute_bridge', secs: 30, note: 'Hold at the top and squeeze.' }] },
+    finishers: [{ id: 'a', steps: [{ ex: 'squat_pulse', secs: 45, note: 'Short bounces in the bottom half.' }, { ex: 'glute_bridge', secs: 30, note: 'Hold at the top and squeeze.' }] },
+      { id: 'b', steps: [{ ex: 'split_squat', secs: 40, note: 'Bodyweight only. Switch legs halfway, no rest.' }, { ex: 'leg_raise', secs: 35, note: 'Slow on the way down.' }] }] },
   chest_shoulders: { name: 'Trial of Chest and Shoulders', short: 'Chest and shoulders', pool: ['flat_press', 'plank', 'shoulder_press', 'fly_incline', 'lateral_raise', 'triceps_ext'], count: [2, 3, 4, 5, 6],
-    finisher: [{ ex: 'lateral_raise', secs: 30, note: 'Very light. Do not stop moving.' }, { ex: 'squeeze_press', secs: 45, note: 'Squeeze until your chest burns.' }] },
+    finishers: [{ id: 'a', steps: [{ ex: 'lateral_raise', secs: 30, note: 'Very light. Do not stop moving.' }, { ex: 'squeeze_press', secs: 45, note: 'Squeeze until your chest burns.' }] },
+      { id: 'b', steps: [{ ex: 'incline_pushup', secs: 40, note: 'As many good reps as you can.' }, { ex: 'lateral_raise', secs: 35, note: 'Very light. Half reps at the end are fine.' }] }] },
 };
 
 // Monday = 1 ... Sunday = 0 (JS getDay)

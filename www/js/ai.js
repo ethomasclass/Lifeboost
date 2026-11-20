@@ -1,6 +1,6 @@
 // Talks to Claude with the key the user saved on this device. The key never leaves the phone
 // except in requests to api.anthropic.com, and is never written into the repository.
-import { weekReport, streak, levelProgress, proteinOf, dayKey, planFor } from './logic.js';
+import { weekReport, streak, levelProgress, proteinOf, dayKey, planFor, doseOffset, isLowDoseDay } from './logic.js';
 import { LEVELS, TRIALS } from './data.js';
 
 const URL = 'https://api.anthropic.com/v1/messages';
@@ -39,6 +39,7 @@ export function context(state) {
     energyToday: d.energy ?? null, sleepHours: d.sleep ?? null, moodToday: d.mood ?? null,
     proteinToday: proteinOf(d), proteinTarget: state.profile.proteinTarget, waterOzToday: d.water || 0, waterTarget: state.profile.waterTarget,
     streak: streak(state).current, levelProgress: levelProgress(state), lastWeek: weekReport(state),
+    goToMeals: state.meals.map((m) => `${m.name} (${m.protein} g protein)`), glp1DaysSinceDose: doseOffset(state, today), usuallyLowEnergyToday: isLowDoseDay(state, today),
     recentSessions: state.sessions.slice(-5).map((s) => ({ date: s.date, trial: s.trialId, mode: s.mode, felt: s.felt, pump: s.pump })),
   };
 }
@@ -68,5 +69,12 @@ export function bardTale(state) {
     system: 'You are a bard of the Fianna telling the tale of one warrior\'s week of training. Write 90 to 130 words in second person, vivid but plain, based only on the numbers given. Be honest: if the week was thin, say so kindly and point to one thing to do next week. End with one line naming next week\'s single focus. No em dashes.',
     messages: [{ role: 'user', content: JSON.stringify({ name: state.profile.name, week: weekReport(state), level: state.profile.level, proteinTarget: state.profile.proteinTarget }) }],
     max: 400,
+  });
+}
+
+export function briefing(state) {
+  return ask(state, {
+    system: `${COACH}\n\nWrite this morning's briefing: one paragraph of 60 to 90 words that will be read aloud. Cover, in order: how they are set up today (sleep and energy if logged, and whether this is usually a low day after their dose), what today's trial is and how long, and one specific protein move for the morning. End with a short send-off. Plain sentences only, no lists, no symbols.`,
+    messages: [{ role: 'user', content: JSON.stringify(context(state)) }], max: 250,
   });
 }
