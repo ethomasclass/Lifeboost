@@ -9,9 +9,9 @@ export const daysBetween = (a, b) => Math.round((parseDay(b) - parseDay(a)) / 86
 export function newState() {
   return {
     v: 1,
-    profile: { name: '', level: 1, weightLb: null, proteinTarget: 120, waterTarget: 80, doseDay: null, dbStep: 5, setup: false },
-    settings: { times: { wake: '05:30', midday: '12:00', evening: '19:30', bedtime: '21:30' }, weekend: { wake: '07:30', midday: '12:30', evening: '19:30', bedtime: '22:00' }, notify: true, skipDate: null, apiKey: '', workspaceId: '', model: 'claude-sonnet-5-5', speak: true, drum: false, lastBackup: null },
-    sessions: [], days: {}, weights: [], meals: [], rewards: [], badges: {}, chat: [], doses: [],
+    profile: { name: '', level: 1, weightLb: null, proteinTarget: 120, waterTarget: 80, doseDay: null, dbStep: 5, stepsGoal: 7000, setup: false },
+    settings: { times: { wake: '05:30', midday: '12:00', evening: '19:30', bedtime: '21:30' }, weekend: { wake: '07:30', midday: '12:30', evening: '19:30', bedtime: '22:00' }, notify: true, skipDate: null, apiKey: '', workspaceId: '', model: 'claude-sonnet-5-5', speak: true, drum: false, lastBackup: null, dev: false },
+    sessions: [], days: {}, weights: [], meals: [], rewards: [], badges: {}, chat: [], doses: [], health: {},
   };
 }
 
@@ -282,3 +282,57 @@ export function isLowDoseDay(state, k) {
   const off = doseOffset(state, k);
   return off != null && dosePattern(state).low.includes(off);
 }
+
+// ---------- Health data (wearable) ----------
+// state.health[day] = { sleep (hours), steps, rhr (resting bpm), hrv (ms), source }.
+// Simulated entries from developer mode and real Health Connect readings share this shape.
+const baseline = (state, k, field) => {
+  const xs = [];
+  for (let i = 1; i <= 14; i++) { const v = state.health?.[addDays(k, -i)]?.[field]; if (v) xs.push(v); }
+  return xs.length >= 3 ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+};
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+// Recovery score 0 to 100 from last night's sleep, plus resting heart rate and HRV against
+// the person's own two-week baseline. Missing pieces are left out and the rest reweighted.
+export function readiness(state, k = dayKey()) {
+  const h = state.health?.[k];
+  if (!h) return null;
+  const parts = [];
+  if (h.sleep) parts.push({ name: 'sleep', w: 50, v: clamp01((h.sleep - 4) / 3.5), note: `${h.sleep} h sleep` });
+  const rb = baseline(state, k, 'rhr'), hb = baseline(state, k, 'hrv');
+  if (h.rhr && rb) parts.push({ name: 'rhr', w: 25, v: clamp01(1 - (h.rhr - rb) / 8), note: `resting heart rate ${h.rhr} (usual ${Math.round(rb)})` });
+  if (h.hrv && hb) parts.push({ name: 'hrv', w: 25, v: clamp01((h.hrv / hb - 0.7) / 0.3), note: `HRV ${h.hrv} (usual ${Math.round(hb)})` });
+  if (!parts.length) return null;
+  const score = Math.round((parts.reduce((a, p) => a + p.w * p.v, 0) / parts.reduce((a, p) => a + p.w, 0)) * 100);
+  return { score, label: score >= 70 ? 'ready' : score >= 45 ? 'steady' : 'low', parts, source: h.source || 'sim', hasBaseline: !!(rb || hb) };
+}
+
+// How much to do today. What the person says about their energy wins; with no check-in,
+// a low recovery score from the wearable starts the day lighter.
+export function modeToday(state, k = dayKey()) {
+  const energy = state.days[k]?.energy;
+  if (energy != null) return modeFor(energy);
+  const r = readiness(state, k);
+  return r && r.label === 'low' ? 'light' : 'full';
+}
+
+export function setHealth(state, k, data, source = 'sim') {
+  const clean = {};
+  for (const f of ['sleep', 'steps', 'rhr', 'hrv']) { const v = Number(data[f]); if (data[f] !== '' && data[f] != null && Number.isFinite(v) && v > 0) clean[f] = v; }
+  state.health ||= {};
+  if (Object.keys(clean).length) state.health[k] = { ...clean, source }; else delete state.health[k];
+  return state.health[k] || null;
+}
+
+// Developer helper: two weeks of ordinary nights so today's numbers have a baseline to compare with.
+export function seedHealthBaseline(state, today = dayKey()) {
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (let i = 14; i >= 1; i--) {
+    const k = addDays(today, -i);
+    if (state.health?.[k] && state.health[k].source !== 'sim') continue;
+    setHealth(state, k, { sleep: Math.round((6.6 + rnd() * 1.2) * 10) / 10, steps: Math.round(5500 + rnd() * 4000), rhr: Math.round(60 + rnd() * 5), hrv: Math.round(44 + rnd() * 10) });
+  }
+}
+export function clearSimHealth(state) { for (const [k, h] of Object.entries(state.health || {})) if ((h.source || 'sim') === 'sim') delete state.health[k]; }

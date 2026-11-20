@@ -127,4 +127,27 @@ assert.deepEqual(L.dosePattern(s).low, [1]);
 s.doses.push('2026-11-15');
 assert.equal(L.isLowDoseDay(s, '2026-11-16'), true); assert.equal(L.isLowDoseDay(s, '2026-11-19'), false);
 
+// wearable data: recovery score and how it sets the day
+s = L.newState();
+assert.equal(L.readiness(s, '2026-11-20'), null);
+assert.equal(L.modeToday(s, '2026-11-20'), 'full');
+L.seedHealthBaseline(s, '2026-11-20');
+assert.equal(Object.keys(s.health).length, 14);
+L.setHealth(s, '2026-11-20', { sleep: 8, steps: 3000, rhr: 61, hrv: 52 });
+let rd = L.readiness(s, '2026-11-20');
+assert.equal(rd.label, 'ready'); assert.equal(rd.parts.length, 3);
+L.setHealth(s, '2026-11-20', { sleep: 4.5, rhr: 72, hrv: 30 });
+rd = L.readiness(s, '2026-11-20');
+assert.equal(rd.label, 'low'); assert.ok(rd.score < 30);
+assert.equal(L.modeToday(s, '2026-11-20'), 'light', 'a rough night starts the day lighter');
+s.days['2026-11-20'] = { energy: 5, food: [], water: 0, mind: 0 };
+assert.equal(L.modeToday(s, '2026-11-20'), 'full', 'the energy check-in overrides the wearable');
+s.days['2026-11-20'].energy = 1;
+assert.equal(L.modeToday(s, '2026-11-20'), 'min');
+const solo = L.newState(); L.setHealth(solo, '2026-11-20', { sleep: 7.5 });
+assert.equal(L.readiness(solo, '2026-11-20').score, 100, 'sleep alone still gives a score');
+L.setHealth(solo, '2026-11-20', { sleep: '', steps: '' });
+assert.equal(solo.health['2026-11-20'], undefined, 'empty input removes the day');
+L.clearSimHealth(s); assert.equal(Object.keys(s.health).length, 0);
+
 console.log('all logic tests passed');

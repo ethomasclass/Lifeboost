@@ -1,6 +1,6 @@
 // Talks to Claude with the key the user saved on this device. The key never leaves the phone
 // except in requests to api.anthropic.com, and is never written into the repository.
-import { weekReport, streak, levelProgress, proteinOf, dayKey, planFor, doseOffset, isLowDoseDay } from './logic.js';
+import { weekReport, streak, levelProgress, proteinOf, dayKey, planFor, doseOffset, isLowDoseDay, readiness } from './logic.js';
 import { LEVELS, TRIALS } from './data.js';
 
 const URL = 'https://api.anthropic.com/v1/messages';
@@ -40,6 +40,7 @@ export function context(state) {
     proteinToday: proteinOf(d), proteinTarget: state.profile.proteinTarget, waterOzToday: d.water || 0, waterTarget: state.profile.waterTarget,
     streak: streak(state).current, levelProgress: levelProgress(state), lastWeek: weekReport(state),
     goToMeals: state.meals.map((m) => `${m.name} (${m.protein} g protein)`), glp1DaysSinceDose: doseOffset(state, today), usuallyLowEnergyToday: isLowDoseDay(state, today),
+    wearable: state.health?.[today] ? { ...state.health[today], recovery: readiness(state, today) } : null,
     recentSessions: state.sessions.slice(-5).map((s) => ({ date: s.date, trial: s.trialId, mode: s.mode, felt: s.felt, pump: s.pump })),
   };
 }

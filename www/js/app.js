@@ -72,9 +72,10 @@ function todayPlan() {
   const k = today(), d = S.days[k] || {}, plan = L.planFor(k);
   const comeback = L.needsComeback(S, k);
   const lowDay = L.isLowDoseDay(S, k) && d.energy == null;
-  const mode = (comeback || lowDay) && L.modeFor(d.energy) === 'full' ? 'light' : L.modeFor(d.energy);
+  const base = L.modeToday(S, k), ready = L.readiness(S, k);
+  const mode = (comeback || lowDay) && base === 'full' ? 'light' : base;
   const done = S.sessions.some((s) => s.date === k && (plan === 'rest' || s.trialId === plan));
-  return { k, d, plan, mode, comeback, done, lowDay, boss: plan !== 'rest' ? L.bossFor(S, plan, mode) : null };
+  return { k, d, plan, mode, comeback, done, lowDay, ready, boss: plan !== 'rest' ? L.bossFor(S, plan, mode) : null };
 }
 const modeWords = { full: 'Full trial', light: 'Lighter trial', min: 'Five-minute trial' };
 
@@ -85,7 +86,7 @@ function backupDue() {
 }
 
 function viewToday() {
-  const { d, plan, mode, comeback, done, lowDay, boss } = todayPlan();
+  const { d, plan, mode, comeback, done, lowDay, boss, ready } = todayPlan();
   const hour = new Date().getHours(), greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const st = L.streak(S), prog = L.levelProgress(S), protein = L.proteinOf(d);
   let trial;
@@ -102,6 +103,7 @@ function viewToday() {
   <div class="top">${fearn(44)}<div class="grow"><h1>${greet}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1><p class="sub">Trial ${lv().n} · ${lv().rank}, the ${lv().tree.toLowerCase()}</p></div>
     <button class="iconbtn" data-act="sheet" data-sheet="settings" aria-label="Settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button></div>
   ${comeback ? `<div class="note">Welcome back. Today is a lighter comeback session, then you pick up where you left off. Nothing was lost.</div>` : ''}
+  ${healthCard(ready, d)}
   ${lowDay ? `<div class="note">This is usually a low-energy day after your dose, so today starts as a lighter trial. Log your energy if you feel better than that.</div>` : ''}
   ${st.shielded ? `<div class="note">A streak shield is holding your ${st.current}-day streak. Any session today keeps it.</div>` : ''}
   ${backupDue() ? `<div class="note">It has been over a week since your last backup. <button class="btn sm" data-act="savebackup" style="margin-top:6px">Save a backup now</button></div>` : ''}
@@ -116,7 +118,18 @@ function viewToday() {
   ${waterCard(true)}
   ${ui.brief ? `<div class="cloth"><h3>Morning briefing</h3><p style="margin:0">${esc(ui.brief)}</p></div>` : ''}
   <div class="grid2"><button class="btn" data-act="brief" ${ui.busy === 'brief' ? 'disabled' : ''}>${ui.busy === 'brief' ? 'Preparing…' : 'Morning briefing'}</button><button class="btn" data-act="sheet" data-sheet="coach">Ask your coach</button></div>
+  ${S.settings.dev ? '<button class="btn sm" style="width:100%;margin-bottom:12px" data-act="sheet" data-sheet="dev">Developer: simulate health data</button>' : ''}
   ${proverb()}`;
+}
+
+function healthCard(ready, d) {
+  const h = S.health?.[today()]; if (!h) return '';
+  const tone = ready ? { ready: 'moss', steady: 'bronze', low: 'ember' }[ready.label] : '';
+  const words = ready ? { ready: 'Well recovered. A full trial is on.', steady: 'Middling recovery. A full trial is fine if you feel up to it.', low: d.energy == null ? 'Poor recovery, so today starts as a lighter trial.' : 'Poor recovery. Your energy check-in decides today.' }[ready.label] : '';
+  return `<div class="cloth"><div class="row between"><h3>From your band</h3>${(h.source || 'sim') === 'sim' ? '<span class="small">simulated</span>' : ''}</div>
+  <div class="grid2" style="margin:8px 0 0">${ready ? `<div><p class="small">Recovery</p><p class="big ${tone}">${ready.score}<span class="small"> / 100</span></p></div>` : ''}${h.sleep ? `<div><p class="small">Sleep</p><p class="big">${h.sleep}<span class="small"> h</span></p></div>` : ''}${h.rhr ? `<div><p class="small">Resting heart rate</p><p class="big">${h.rhr}<span class="small"> bpm</span></p></div>` : ''}${h.hrv ? `<div><p class="small">HRV</p><p class="big">${h.hrv}<span class="small"> ms</span></p></div>` : ''}</div>
+  ${h.steps ? `<p class="small" style="margin:10px 0 0">Steps: ${h.steps.toLocaleString()} of ${S.profile.stepsGoal.toLocaleString()}</p>${meter(h.steps, S.profile.stepsGoal)}` : ''}
+  ${words ? `<p class="small" style="margin:8px 0 0">${words}</p>` : ''}</div>`;
 }
 
 // ---------- Train ----------
@@ -237,10 +250,12 @@ function sheetSettings() {
   ${isNative() ? '' : '<p class="small" style="margin-top:8px">Reminders work in the installed Android app.</p>'}
   <h2>During a trial</h2><label class="row"><input type="checkbox" name="speak" ${s.speak ? 'checked' : ''} style="width:22px;min-height:22px;height:22px"> Read form cues aloud</label>
   <label class="row"><input type="checkbox" name="drum" ${s.drum ? 'checked' : ''} style="width:22px;min-height:22px;height:22px"> Drum beat on each tempo change</label>
+  <label for="sg">Daily steps goal</label><input id="sg" name="stepsGoal" type="number" inputmode="numeric" min="1000" max="40000" step="500" value="${p.stepsGoal}">
   <h2>Coach</h2><label for="ak">Claude API key</label><input id="ak" name="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(s.apiKey)}">
   <label for="wsid">Workspace ID (only if your key asks for one)</label><input id="wsid" name="workspaceId" autocomplete="off" placeholder="wrkspc_…" value="${esc(s.workspaceId || '')}">
   <p class="small" style="margin-top:6px">Powers the coach, photo food estimates, and the bard's tale. Stored only on this phone.</p>
   <button class="btn go" style="margin-top:18px">Save settings</button></form>
+  <div class="cloth" style="margin-top:16px"><label class="row" style="margin:0"><input type="checkbox" data-devtoggle ${s.dev ? 'checked' : ''} style="width:22px;min-height:22px;height:22px"> Developer mode</label><p class="small" style="margin:8px 0 0">Adds a button on Today for entering simulated band data (sleep, steps, heart rate).</p></div>
   <h2>Backup</h2><div class="cloth"><p class="small">${S.settings.lastBackup ? `Last backup: ${niceDate(S.settings.lastBackup)}.` : 'No backup yet.'} Save the file to Google Drive or email it to yourself.</p><div class="row wrap"><button class="btn sm" data-act="savebackup">Save backup file</button><label class="btn sm" style="margin:0;color:var(--bone)">Restore from file<input type="file" accept=".json,application/json,text/plain" data-restore hidden></label></div>
   ${ui.backup ? `<label for="backup">Backup text (copy all of it)</label><textarea id="backup">${esc(ui.backup)}</textarea><button class="btn sm" data-act="import" style="margin-top:8px">Restore from this text</button>` : ''}</div></div>`;
 }
@@ -305,7 +320,21 @@ function sheetPlayer() {
   <div class="spacer" style="min-height:12px"></div><button class="btn go" style="margin-top:12px">Set done</button></form></div>`;
 }
 
-const SHEETS = { setup: sheetSetup, settings: sheetSettings, move: sheetMove, coach: sheetCoach, breath: sheetBreath, med: sheetMed, player: sheetPlayer };
+function sheetDev() {
+  const k = ui.devDay || today(), h = S.health?.[k] || {}, r = L.readiness(S, k), n = Object.values(S.health || {}).filter((x) => (x.source || 'sim') === 'sim').length;
+  const f = (name, label, attrs) => `<div><label for="dv${name}">${label}</label><input id="dv${name}" name="${name}" type="number" inputmode="decimal" value="${h[name] ?? ''}" ${attrs}></div>`;
+  return `<div><div class="row between"><h1>Developer mode</h1>${closeBtn()}</div>
+  <p class="dim" style="margin-top:6px">Type in the numbers a fitness band would send through Health Connect, then watch how Fianna reacts. Nothing here touches real health data.</p>
+  <div class="slab" style="margin-top:12px"><p class="small">Result for ${niceDate(k)}</p>${r ? `<h3>Recovery ${r.score} of 100 · ${r.label}</h3><p class="small">${r.parts.map((p) => `${p.note}: ${Math.round(p.v * 100)}%`).join(' · ')}</p><p class="small">${r.hasBaseline ? '' : 'No baseline yet, so only sleep counts. Add two weeks of history below. '}${k === today() ? `Today's trial would be: ${modeWords[todayPlan().mode].toLowerCase()}.` : ''}</p>` : '<p class="dim" style="margin:0">No data for this day yet.</p>'}</div>
+  <form data-form="dev"><label for="dvday">Day</label><input id="dvday" name="day" type="date" value="${k}" max="${today()}" data-devday>
+  <div class="fields">${f('sleep', 'Sleep (hours)', 'step="0.1" min="0" max="16"')}${f('steps', 'Steps', 'step="1" min="0" max="80000"')}${f('rhr', 'Resting heart rate (bpm)', 'step="1" min="30" max="140"')}${f('hrv', 'HRV (ms)', 'step="1" min="5" max="250"')}</div>
+  <button class="btn go" style="margin-top:14px">Save this day</button></form>
+  <h2>Quick scenarios for today</h2><div class="row wrap"><button class="btn sm" data-act="devpreset" data-p="great">Great night</button><button class="btn sm" data-act="devpreset" data-p="ok">Average night</button><button class="btn sm" data-act="devpreset" data-p="rough">Rough night</button></div>
+  <h2>History</h2><p class="small">${n} simulated ${n === 1 ? 'day' : 'days'} stored. Heart rate and HRV are judged against your own last two weeks, so they need history to mean anything.</p><div class="row wrap"><button class="btn sm" data-act="devseed">Add two ordinary weeks</button><button class="btn sm" data-act="devclear">Clear simulated data</button></div>
+  <p class="small" style="margin-top:14px">Your energy check-in always overrides the band. Clear today's energy on the Mind tab to see the band decide.</p><button class="btn sm" data-act="devenergy">Clear today's energy check-in</button></div>`;
+}
+
+const SHEETS = { dev: sheetDev, setup: sheetSetup, settings: sheetSettings, move: sheetMove, coach: sheetCoach, breath: sheetBreath, med: sheetMed, player: sheetPlayer };
 const VIEWS = { today: viewToday, train: viewTrain, fuel: viewFuel, mind: viewMind, progress: viewProgress };
 const TABS = [['today', 'Today', '<path d="M4 11l8-7 8 7v9H4z"/>'], ['train', 'Train', '<path d="M3 9v6M7 6v12M17 6v12M21 9v6M7 12h10"/>'], ['fuel', 'Fuel', '<path d="M12 3c3 4 5 6.5 5 10a5 5 0 01-10 0c0-3.500 2-6 5-10z"/>'], ['mind', 'Mind', '<circle cx="12" cy="12" r="8"/><path d="M12 12c0-3 3-4 4-2s-1 4-3 3"/>'], ['progress', 'Progress', '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>']];
 
@@ -427,6 +456,10 @@ const ACT = {
     } catch { /* fall through to text */ }
     ui.backup = text; ui.sheet = 'settings'; S.settings.lastBackup = today(); save(); render(); toast('Copy the backup text at the bottom of Settings.');
   },
+  devpreset: (d) => { const v = { great: { sleep: 8.2, steps: 9400, rhr: 58, hrv: 58 }, ok: { sleep: 6.8, steps: 6200, rhr: 63, hrv: 48 }, rough: { sleep: 4.6, steps: 2100, rhr: 72, hrv: 31 } }[d.p]; ui.devDay = today(); L.setHealth(S, today(), v); save(); render(); toast('Simulated night saved for today.'); },
+  devseed: () => { L.seedHealthBaseline(S); save(); render(); toast('Two ordinary weeks added.'); },
+  devclear: () => { L.clearSimHealth(S); save(); render(); toast('Simulated data cleared.'); },
+  devenergy: () => { const d = S.days[today()]; if (d) delete d.energy; save(); render(); toast("Today's energy check-in cleared."); },
   export: () => { ui.backup = JSON.stringify({ ...S, settings: { ...S.settings, apiKey: '' } }); render(); toast('Your API key is left out of backups.'); },
   import: () => restore($('#backup').value),
   ask: (d) => sendChat(d.q),
@@ -459,7 +492,7 @@ const FORMS = {
     const p = S.profile, s = S.settings, lvl = Number(f.level);
     p.name = f.name.trim(); p.weightLb = Number(f.lb) || null; p.proteinTarget = Number(f.protein) || p.proteinTarget; p.waterTarget = Number(f.water) || p.waterTarget; p.dbStep = Number(f.step);
     if (lvl !== p.level) { p.level = lvl; p.levelSince = today(); }
-    s.notify = !!f.notify; s.speak = !!f.speak; s.drum = !!f.drum; s.apiKey = f.apiKey.trim(); s.workspaceId = (f.workspaceId || '').trim();
+    p.stepsGoal = Number(f.stepsGoal) || p.stepsGoal; s.notify = !!f.notify; s.speak = !!f.speak; s.drum = !!f.drum; s.apiKey = f.apiKey.trim(); s.workspaceId = (f.workspaceId || '').trim();
     for (const g of ['times', 'weekend']) for (const slot of Object.keys(s[g])) if (f[`${g}.${slot}`]) s[g][slot] = f[`${g}.${slot}`];
     save(); const r = await syncNotifications(s); ui.sheet = null; render();
     toast(r.ok ? (s.notify ? 'Saved. Reminders are set.' : 'Saved. Reminders are off.') : 'Saved.');
@@ -471,6 +504,7 @@ const FORMS = {
     ui.mealDraft = null; ui.mealNote = ''; const fresh = L.awardBadges(S); save(); render();
     toast(fresh.length ? `New torc: ${fresh[0].name}` : `Added ${item.protein} g protein.`);
   },
+  dev: (f) => { ui.devDay = f.day || today(); L.setHealth(S, ui.devDay, f); save(); render(); toast('Saved.'); },
   journal: (f) => { L.day(S, today()).journal = { grat: f.grat.trim(), refl: f.refl.trim() }; save(); toast('Journal saved.'); },
   weight: (f) => { const lb = Number(f.lb); if (!lb) return; S.weights = S.weights.filter((w) => w.date !== today()); S.weights.push({ date: today(), lb }); S.profile.weightLb = lb; save(); render(); toast('Weigh-in logged.'); },
   reward: (f) => { S.rewards.push({ text: f.text.trim(), level: Number(f.level) }); save(); render(); },
@@ -492,6 +526,10 @@ document.addEventListener('submit', (ev) => {
   ev.preventDefault(); FORMS[form.dataset.form]?.(Object.fromEntries(new FormData(form)), form);
 });
 document.addEventListener('input', (ev) => { if (ev.target.matches('input[data-cmp]')) { const top = $('#cmpTop'); if (top) top.style.width = ev.target.value + '%'; } });
+document.addEventListener('change', (ev) => {
+  if (ev.target.matches('input[data-devtoggle]')) { S.settings.dev = ev.target.checked; save(); toast(S.settings.dev ? 'Developer mode is on. Look for the button on Today.' : 'Developer mode is off.'); }
+  if (ev.target.matches('input[data-devday]') && ev.target.value) { ui.devDay = ev.target.value; render(); }
+});
 document.addEventListener('change', async (ev) => {
   const rest = ev.target.closest('input[data-restore]');
   if (rest?.files?.[0]) { restore(await rest.files[0].text()); return; }
